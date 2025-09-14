@@ -78,45 +78,131 @@ export default function Index() {
   const [writeOpen, setWriteOpen] = useState(false);
   const [writingPoem, setWritingPoem] = useState<Poem | null>(null);
   const [writingContent, setWritingContent] = useState("");
+  const [hasImported, setHasImported] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
-  const dateRef = useRef<HTMLInputElement>(null);
-  const tagsRef = useRef<HTMLInputElement>(null);
-  const draftRef = useRef<HTMLInputElement>(null);
 
-  const applyCreateOrEdit = (title: string, date: string, tags: string[], draft: boolean) => {
+  // Controlled fields for Add/Edit dialog
+  const [formTitle, setFormTitle] = useState("");
+  const [formDate, setFormDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [formTags, setFormTags] = useState("");
+  const [formDraft, setFormDraft] = useState(false);
+
+  useEffect(() => {
+    if (openForm) {
+      setFormTitle(editing?.title ?? "");
+      setFormDate(editing?.date || format(new Date(), "yyyy-MM-dd"));
+      setFormTags(editing ? editing.tags.join(", ") : "");
+      setFormDraft(!!editing?.draft);
+      setTimeout(() => titleRef.current?.focus(), 0);
+    }
+  }, [openForm, editing]);
+
+  const saveWriting = () => {
+    if (writingPoem) {
+      setPoems((prev) => updatePoem(prev, writingPoem.id, { content: writingContent }));
+    }
+    setWriteOpen(false);
+    setWritingPoem(null);
+    setWritingContent("");
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const metaS = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s";
+      if (writeOpen) {
+        if (metaS) {
+          e.preventDefault();
+          saveWriting();
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setWriteOpen(false);
+          setWritingPoem(null);
+          setWritingContent("");
+          return;
+        }
+      }
+
+      if (openForm) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setOpenForm(false);
+          setEditing(null);
+          return;
+        }
+      }
+
+      if (!openForm && !writeOpen) {
+        if (e.key === "/") {
+          e.preventDefault();
+          searchRef.current?.focus();
+          return;
+        }
+        if (e.key.toLowerCase() === "n") {
+          e.preventDefault();
+          setOpenForm(true);
+          return;
+        }
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [openForm, writeOpen, writingPoem, writingContent]);
+
+  const applyCreateOrEdit = (title: string, date: string, tags: string[], draft: boolean): boolean => {
     if (!title.trim()) {
       toast.error("Title is required");
-      return;
+      return false;
     }
     if (editing) {
-      setPoems((prev) => updatePoem(prev, editing.id, { title: title.trim(), date, tags, draft }));
+      const nextTitle = title.trim();
+      const prevTitle = editing.title;
+      const prevDate = editing.date || "";
+      const prevDraft = !!editing.draft;
+      const prevTags = editing.tags || [];
+      const sameTitle = nextTitle === prevTitle;
+      const sameDate = (date || "") === prevDate;
+      const sameDraft = !!draft === prevDraft;
+      const sameTags = prevTags.length === tags.length && prevTags.every((t, i) => t === tags[i]);
+      if (sameTitle && sameDate && sameDraft && sameTags) {
+        toast.info("No changes have been made");
+        return false;
+      }
+      setPoems((prev) => updatePoem(prev, editing.id, { title: nextTitle, date, tags, draft }));
       toast.success("Poem updated");
     } else {
       const poem = createPoem({ title: title.trim(), content: "", date, tags, draft });
       setPoems((prev) => [poem, ...prev]);
-      setWritingPoem(poem);
-      setWritingContent("");
-      setWriteOpen(true);
+      if (!hasImported) {
+        setWritingPoem(poem);
+        setWritingContent("");
+        setWriteOpen(true);
+      }
       toast.success("Poem created");
     }
     setOpenForm(false);
     setEditing(null);
+    return true;
   };
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const title = String(fd.get("title") || "");
-    const date = String(fd.get("date") || format(new Date(), "yyyy-MM-dd"));
-    const tags = normalizeTags(String(fd.get("tags") || "")
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean));
-    const draft = fd.get("draft") === "on";
+    const title = (titleRef.current?.value ?? formTitle).toString();
+    const date = (formDate || format(new Date(), "yyyy-MM-dd")).toString();
+    const tags = normalizeTags(formTags.split(",").map((t) => t.trim()).filter(Boolean));
+    const draft = formDraft;
 
-    applyCreateOrEdit(title, date, tags, draft);
-    e.currentTarget.reset();
+    const ok = applyCreateOrEdit(title, date, tags, draft);
+    if (ok) {
+      setFormTitle("");
+      setFormDate(format(new Date(), "yyyy-MM-dd"));
+      setFormTags("");
+      setFormDraft(false);
+    }
   };
 
   const toggleFavorite = (p: Poem) => {
@@ -180,6 +266,9 @@ export default function Index() {
       const combined = created.length ? [...created, ...next] : next;
       return sortPoems(combined, sort);
     });
+    setHasImported(true);
+    setOpenForm(false);
+    setEditing(null);
     const parts: string[] = [];
     if (jsonCount) parts.push(`JSON: ${jsonCount}`);
     if (created.length) parts.push(`DOCX: ${created.length}`);
@@ -193,6 +282,7 @@ export default function Index() {
             <div className="relative w-full md:w-96">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
+                ref={searchRef}
                 placeholder="Search by title, tag, or content"
                 className="pl-9 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                 value={query}
@@ -230,17 +320,17 @@ export default function Index() {
                   <DialogDescription>Provide title, date, tags (comma separated), and draft. After creating, a full-screen editor opens to write the poem.</DialogDescription>
                 </DialogHeader>
                 <form ref={formRef} className="grid gap-3" onSubmit={onSubmit}>
-                  <Input ref={titleRef} name="title" placeholder="Title" defaultValue={editing?.title} required className="border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                  <Input ref={titleRef} name="title" placeholder="Title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} className="border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
                   <div className="flex gap-3">
-                    <Input ref={dateRef} name="date" type="date" className="w-40 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" defaultValue={editing?.date || format(new Date(), "yyyy-MM-dd")} />
-                    <Input ref={tagsRef} name="tags" placeholder="Tags (comma separated)" defaultValue={editing?.tags.join(", ") || ""} className="border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                    <Input name="date" type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} className="w-40 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                    <Input name="tags" placeholder="Tags (comma separated)" value={formTags} onChange={(e) => setFormTags(e.target.value)} className="border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
                   </div>
                   <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                     <input
-                      ref={draftRef}
                       type="checkbox"
                       name="draft"
-                      defaultChecked={!!editing?.draft}
+                      checked={formDraft}
+                      onChange={(e) => setFormDraft(e.target.checked)}
                       className="h-5 w-5 rounded-md border-2 border-primary bg-background text-primary accent-primary transition-colors hover:bg-primary/10 focus:outline-none focus:ring-0 focus:ring-offset-0"
                     />
                     Draft
@@ -252,23 +342,17 @@ export default function Index() {
                     <Button
                       type="button"
                       onClick={() => {
-                        const title = titleRef.current?.value ?? "";
-                        const draft = !!draftRef.current?.checked;
-                        const tags = normalizeTags(String(tagsRef.current?.value ?? "")
-                          .split(",")
-                          .map((t) => t.trim())
-                          .filter(Boolean));
-                        // Convert dd/MM/yyyy (visible) to ISO yyyy-MM-dd
-                        const txt = dateRef.current?.value ?? "";
-                        let date = format(new Date(), "yyyy-MM-dd");
-                        const m = txt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-                        if (m) {
-                          const d = parse(`${m[1].padStart(2, "0")}/${m[2].padStart(2, "0")}/${m[3]}`, "dd/MM/yyyy", new Date());
-                          if (isValid(d)) date = format(d, "yyyy-MM-dd");
+                        const title = (titleRef.current?.value ?? formTitle).toString();
+                        const draft = formDraft;
+                        const tags = normalizeTags(formTags.split(",").map((t) => t.trim()).filter(Boolean));
+                        const date = formDate || format(new Date(), "yyyy-MM-dd");
+                        const ok = applyCreateOrEdit(title, date, tags, draft);
+                        if (ok) {
+                          setFormTitle("");
+                          setFormDate(format(new Date(), "yyyy-MM-dd"));
+                          setFormTags("");
+                          setFormDraft(false);
                         }
-                        applyCreateOrEdit(title, date, tags, draft);
-                        // reset fields after create/edit
-                        formRef.current?.reset();
                       }}
                     >
                       {editing ? "Save Changes" : "Create Poem"}
@@ -327,7 +411,6 @@ export default function Index() {
                         <Button size="icon" variant="ghost" aria-label="Actions"><MoreHorizontal className="h-4 w-4" /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { setEditing(p); setOpenForm(true); }}>Edit</DropdownMenuItem>
                         <DropdownMenuItem asChild><Link to={`/poem/${p.id}`}>Open</Link></DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(p.id)}>Delete</DropdownMenuItem>
                       </DropdownMenuContent>
@@ -373,7 +456,7 @@ export default function Index() {
                 <h2 className="text-lg font-semibold">Write: {writingPoem.title}</h2>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" onClick={() => { setWriteOpen(false); setWritingPoem(null); setWritingContent(""); }}>Close</Button>
-                  <Button onClick={() => { if (writingPoem) { setPoems((prev) => updatePoem(prev, writingPoem.id, { content: writingContent })); } setWriteOpen(false); setWritingPoem(null); setWritingContent(""); }}>Save</Button>
+                  <Button onClick={saveWriting}>Save</Button>
                 </div>
               </div>
               <div className="flex-1 pb-[3px]">
@@ -395,6 +478,11 @@ export default function Index() {
                   min={1}
                   max={totalPages}
                   value={currentPage}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                      e.preventDefault();
+                    }
+                  }}
                   onChange={(e) => {
                     const n = Number(e.target.value);
                     if (!Number.isNaN(n)) setPage(Math.min(Math.max(1, n), totalPages));
@@ -402,6 +490,12 @@ export default function Index() {
                   onBlur={(e) => {
                     const n = Number(e.target.value);
                     if (!Number.isNaN(n)) setPage(Math.min(Math.max(1, n), totalPages));
+                  }}
+                  onKeyUp={(e) => {
+                    if (e.key === "Enter") {
+                      const n = Number((e.target as HTMLInputElement).value);
+                      if (!Number.isNaN(n)) setPage(Math.min(Math.max(1, n), totalPages));
+                    }
                   }}
                   className="w-14 rounded border bg-background px-2 py-1 text-center text-sm"
                 />

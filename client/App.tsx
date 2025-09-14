@@ -15,28 +15,19 @@ import Dashboard from "./pages/Dashboard";
 import Manage from "./pages/Manage";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Analytics } from "@vercel/analytics/react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { loadSiteTitle, saveSiteTitle } from "@/lib/site";
+import { buttonVariants } from "@/components/ui/button";
+import { loadSiteTitle } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 const queryClient = new QueryClient();
 
 function Layout() {
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState<string>(() => loadSiteTitle());
+  const [title] = useState<string>(() => loadSiteTitle());
 
   useEffect(() => {
     document.title = `${title} - Poetry Manager`;
   }, [title]);
 
-  const onSave = () => {
-    const next = title.trim() || "AngelWrites";
-    saveSiteTitle(next);
-    setTitle(next);
-    setOpen(false);
-  };
 
   return (
     <div className="min-h-screen">
@@ -51,21 +42,6 @@ function Layout() {
             <NavLink to="/favorites" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-primary/15 hover:text-primary")}>Favorites</NavLink>
             <NavLink to="/dashboard" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-primary/15 hover:text-primary")}>Dashboard</NavLink>
             <NavLink to="/manage" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-primary/15 hover:text-primary")}>Manage</NavLink>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="border-2 border-primary hover:bg-transparent">Rename</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Rename website</DialogTitle>
-                </DialogHeader>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Website name" />
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                  <Button onClick={onSave}>Save</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
             <ThemeToggle />
           </nav>
         </div>

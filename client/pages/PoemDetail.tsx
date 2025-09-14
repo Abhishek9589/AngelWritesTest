@@ -12,9 +12,11 @@ import {
   savePoems,
   updatePoem,
   deletePoem,
+  normalizeTags,
 } from "@/lib/poems";
 import { exportPoemsToDOCX, exportPoemsToPDF } from "@/lib/exporters";
-import { ArrowLeft, Edit, Star, StarOff, Trash, FileDown, Pencil } from "lucide-react";
+import BackButton from "@/components/BackButton";
+import { Edit, Star, StarOff, Trash, FileDown, Pencil } from "lucide-react";
 import { format, parse, isValid } from "date-fns";
 
 export default function PoemDetail() {
@@ -28,10 +30,25 @@ export default function PoemDetail() {
   const [editTitle, setEditTitle] = useState("");
   const [editDateText, setEditDateText] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [editTags, setEditTags] = useState("");
   const [renaming, setRenaming] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { savePoems(poems); }, [poems]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const metaS = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s";
+      if (openEdit) {
+        if (metaS) { e.preventDefault(); saveEdits(); return; }
+        if (e.key === "Escape") { e.preventDefault(); setOpenEdit(false); return; }
+      } else {
+        if (e.key.toLowerCase() === "e") { e.preventDefault(); setOpenEdit(true); }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [openEdit, editTitle, editDateText, editContent]);
 
   const poem = useMemo(() => poems.find((p) => p.id === id) || null, [poems, id]);
   useEffect(() => { if (!poem) console.warn("Poem not found for id", id); }, [poem, id]);
@@ -42,6 +59,7 @@ export default function PoemDetail() {
       const d = poem.date ? new Date(poem.date) : new Date();
       setEditDateText(format(d, "dd/MM/yyyy"));
       setEditContent(poem.content);
+      setEditTags((poem.tags || []).join(", "));
       setRenaming(false);
     }
   }, [poem, openEdit]);
@@ -49,7 +67,7 @@ export default function PoemDetail() {
   if (!poem) {
     return (
       <div className="container py-10">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:underline"><ArrowLeft className="h-4 w-4" /> Back</Link>
+        <BackButton />
         <h1 className="mt-6 text-2xl font-semibold">Poem not found</h1>
       </div>
     );
@@ -70,14 +88,15 @@ export default function PoemDetail() {
       const d = parse(`${m[1].padStart(2, "0")}/${m[2].padStart(2, "0")}/${m[3]}`, "dd/MM/yyyy", new Date());
       if (isValid(d)) iso = format(d, "yyyy-MM-dd");
     }
-    setPoems((prev) => updatePoem(prev, poem.id, { title: editTitle.trim(), content: editContent, date: iso }));
+    const tags = normalizeTags(editTags.split(",").map((t) => t.trim()).filter(Boolean));
+    setPoems((prev) => updatePoem(prev, poem.id, { title: editTitle.trim(), content: editContent, date: iso, tags }));
     setOpenEdit(false);
   };
 
   return (
     <div className="container py-6">
       <div className="flex items-center justify-between">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:underline"><ArrowLeft className="h-4 w-4" /> Back</Link>
+        <BackButton />
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => exportPoemsToPDF([poem], `${poem.title}.pdf`)} className="gap-2 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"><FileDown className="h-4 w-4" /> PDF</Button>
           <Button variant="outline" onClick={() => exportPoemsToDOCX([poem], `${poem.title}.docx`)} className="gap-2 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"><FileDown className="h-4 w-4" /> DOCX</Button>
@@ -148,9 +167,15 @@ export default function PoemDetail() {
                 <Button onClick={saveEdits}>Save</Button>
               </div>
             </div>
-            <div className="pb-3">
-              <label className="text-xs text-muted-foreground block mb-1">Date</label>
-              <Input type="date" value={editDateText} onChange={(e) => setEditDateText(e.target.value)} className="w-40 border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
+            <div className="pb-3 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Date</label>
+                <Input type="date" value={editDateText} onChange={(e) => setEditDateText(e.target.value)} className="w-40 border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Tags</label>
+                <Input value={editTags} onChange={(e) => setEditTags(e.target.value)} placeholder="Tags (comma separated)" className="border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
+              </div>
             </div>
             <div className="flex-1 pb-[3px]">
               <Textarea className="h-full resize-none border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" value={editContent} onChange={(e) => setEditContent(e.target.value)} placeholder="Edit your poem..." />
