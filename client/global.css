@@ -72,7 +72,7 @@
     --muted: 230 15% 25%;
     --muted-foreground: 210 15% 70%;
 
-    --accent: 15 80% 55%;
+    --accent: 185 70% 45%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 75% 55%;
@@ -105,12 +105,12 @@
   }
 }
 
-/* Improve native date picker icon visibility */
+/* Hide native date picker indicator; use our custom icon instead */
 input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(0);
-  opacity: 0.9;
+  opacity: 0;
+  pointer-events: none;
 }
 .dark input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1) brightness(1.2);
-  opacity: 1;
+  opacity: 0;
+  pointer-events: none;
 }

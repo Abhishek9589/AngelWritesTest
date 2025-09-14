@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -12,11 +12,10 @@ import {
   savePoems,
   updatePoem,
   deletePoem,
-  normalizeTags,
 } from "@/lib/poems";
 import { exportPoemsToDOCX, exportPoemsToPDF } from "@/lib/exporters";
-import { ArrowLeft, Edit, Star, StarOff, Trash, FileDown } from "lucide-react";
-import { format } from "date-fns";
+import { ArrowLeft, Edit, Star, StarOff, Trash, FileDown, Pencil } from "lucide-react";
+import { format, parse, isValid } from "date-fns";
 
 export default function PoemDetail() {
   const { id } = useParams<{ id: string }>();
@@ -25,10 +24,27 @@ export default function PoemDetail() {
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
 
+  // Local edit state for full-screen editor
+  const [editTitle, setEditTitle] = useState("");
+  const [editDateText, setEditDateText] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [renaming, setRenaming] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => { savePoems(poems); }, [poems]);
 
   const poem = useMemo(() => poems.find((p) => p.id === id) || null, [poems, id]);
   useEffect(() => { if (!poem) console.warn("Poem not found for id", id); }, [poem, id]);
+
+  useEffect(() => {
+    if (poem && openEdit) {
+      setEditTitle(poem.title);
+      const d = poem.date ? new Date(poem.date) : new Date();
+      setEditDateText(format(d, "dd/MM/yyyy"));
+      setEditContent(poem.content);
+      setRenaming(false);
+    }
+  }, [poem, openEdit]);
 
   if (!poem) {
     return (
@@ -41,22 +57,20 @@ export default function PoemDetail() {
 
   const toggleFavorite = () => setPoems((prev) => updatePoem(prev, poem.id, { favorite: !poem.favorite }));
   const confirmDelete = () => {
-    setPoems((prev) => deletePoem(prev, poem.id));
+    setPoems((prev) => prev.filter((p) => p.id !== poem.id));
     setOpenDelete(false);
     navigate("/");
   };
 
-  const onEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const title = String(fd.get("title") || "").trim();
-    const content = String(fd.get("content") || "").trim();
-    const date = String(fd.get("date") || poem.date);
-    const tags = normalizeTags(String(fd.get("tags") || "")
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean));
-    setPoems((prev) => updatePoem(prev, poem.id, { title, content, date, tags }));
+  const saveEdits = () => {
+    // convert DD/MM/YYYY to ISO yyyy-MM-dd
+    const m = editDateText.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    let iso = poem.date;
+    if (m) {
+      const d = parse(`${m[1].padStart(2, "0")}/${m[2].padStart(2, "0")}/${m[3]}`, "dd/MM/yyyy", new Date());
+      if (isValid(d)) iso = format(d, "yyyy-MM-dd");
+    }
+    setPoems((prev) => updatePoem(prev, poem.id, { title: editTitle.trim(), content: editContent, date: iso }));
     setOpenEdit(false);
   };
 
@@ -67,28 +81,7 @@ export default function PoemDetail() {
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => exportPoemsToPDF([poem], `${poem.title}.pdf`)} className="gap-2 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"><FileDown className="h-4 w-4" /> PDF</Button>
           <Button variant="outline" onClick={() => exportPoemsToDOCX([poem], `${poem.title}.docx`)} className="gap-2 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"><FileDown className="h-4 w-4" /> DOCX</Button>
-          <Dialog open={openEdit} onOpenChange={setOpenEdit}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"><Edit className="h-4 w-4" /> Edit</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Edit poem</DialogTitle>
-                <DialogDescription>Update the poem details.</DialogDescription>
-              </DialogHeader>
-              <form className="grid gap-3" onSubmit={onEditSubmit}>
-                <Input name="title" defaultValue={poem.title} required />
-                <Textarea name="content" defaultValue={poem.content} required rows={10} />
-                <div className="flex gap-3">
-                  <Input name="date" type="date" className="w-40" defaultValue={poem.date || format(new Date(), "yyyy-MM-dd")} />
-                  <Input name="tags" defaultValue={poem.tags.join(", ")} />
-                </div>
-                <DialogFooter>
-                  <Button type="submit">Save</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button variant="outline" className="gap-2 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" onClick={() => setOpenEdit(true)}><Edit className="h-4 w-4" /> Edit</Button>
           <Button variant="destructive" size="icon" aria-label="Delete" onClick={() => setOpenDelete(true)}><Trash className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" onClick={toggleFavorite} aria-label={poem.favorite ? "Unfavorite" : "Favorite"}>
             {poem.favorite ? <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" /> : <StarOff className="h-4 w-4" />}
@@ -122,6 +115,47 @@ export default function PoemDetail() {
           {poem.content}
         </div>
       </article>
+
+      {openEdit && (
+        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur">
+          <div className="container mx-auto flex h-full flex-col">
+            <div className="flex items-center justify-between py-4">
+              <div className="flex items-center gap-3 min-w-0">
+                {!renaming ? (
+                  <h2 className="text-lg font-semibold truncate" title={editTitle}>{editTitle}</h2>
+                ) : (
+                  <Input
+                    ref={titleInputRef}
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="max-w-xl"
+                  />
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Rename"
+                  onClick={() => {
+                    setRenaming((v) => !v);
+                    setTimeout(() => titleInputRef.current?.focus(), 0);
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setOpenEdit(false)}>Close</Button>
+                <Button onClick={saveEdits}>Save</Button>
+              </div>
+            </div>
+            <div className="pb-3">
+              <label className="text-xs text-muted-foreground block mb-1">Date</label>
+              <Input type="date" value={editDateText} onChange={(e) => setEditDateText(e.target.value)} className="w-40" />
+            </div>
+            <Textarea className="h-full resize-none" value={editContent} onChange={(e) => setEditContent(e.target.value)} placeholder="Edit your poem..." />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
