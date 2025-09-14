@@ -28,7 +28,7 @@ function Layout() {
   const [title, setTitle] = useState<string>(() => loadSiteTitle());
 
   useEffect(() => {
-    document.title = `${title} ��� poetry manager`;
+    document.title = `${title} - Poetry Manager`;
   }, [title]);
 
   const onSave = () => {
