@@ -32,7 +32,7 @@ export default function Favorites() {
         <h1 className="text-2xl font-semibold">Favorites</h1>
         <div className="relative w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search favorites" className="pl-9" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <Input placeholder="Search favorites" className="pl-9 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
       </div>
 

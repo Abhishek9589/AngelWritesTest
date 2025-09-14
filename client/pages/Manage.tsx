@@ -15,6 +15,7 @@ import { createDOCXBlobForPoem, createPDFBlobForPoem } from "@/lib/exporters";
 import { FileDown, FileJson, Search, Trash2 } from "lucide-react";
 import JSZip from "jszip";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 export default function Manage() {
   const [poems, setPoems] = useState<Poem[]>(() => loadPoems());
@@ -40,7 +41,7 @@ export default function Manage() {
   };
 
   const exportSelectedJSON = () => {
-    if (selected.size === 0) return alert("Select poems first.");
+    if (selected.size === 0) return toast.info("Select poems first.");
     const list = poems.filter((p) => selected.has(p.id));
     download("angelhub-selected.json", toJSON(list), "application/json");
   };
@@ -61,7 +62,7 @@ export default function Manage() {
   }
 
   async function exportSelectedPDFZip() {
-    if (selected.size === 0) return alert("Select poems first.");
+    if (selected.size === 0) return toast.info("Select poems first.");
     const list = poems.filter((p) => selected.has(p.id));
 
     // If only one poem is selected, download the individual PDF directly (no zip)
@@ -82,7 +83,7 @@ export default function Manage() {
   }
 
   async function exportSelectedDOCXZip() {
-    if (selected.size === 0) return alert("Select poems first.");
+    if (selected.size === 0) return toast.info("Select poems first.");
     const list = poems.filter((p) => selected.has(p.id));
 
     // If only one poem is selected, download the individual DOCX directly (no zip)
@@ -103,7 +104,7 @@ export default function Manage() {
   }
 
   function deleteSelected() {
-    if (selected.size === 0) return alert("Select poems first.");
+    if (selected.size === 0) return toast.info("Select poems first.");
     setOpenDelete(true);
   }
   function confirmDelete() {
@@ -119,12 +120,12 @@ export default function Manage() {
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search poems" className="pl-9" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <Input placeholder="Search poems" className="pl-9 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={exportSelectedJSON} className="gap-2"><FileJson className="h-4 w-4" /> JSON</Button>
-          <Button variant="outline" onClick={exportSelectedPDFZip} className="gap-2"><FileDown className="h-4 w-4" /> PDF</Button>
-          <Button variant="outline" onClick={exportSelectedDOCXZip} className="gap-2"><FileDown className="h-4 w-4" /> DOCX</Button>
+          <Button variant="outline" onClick={exportSelectedJSON} className="gap-2 border-2 border-primary"><FileJson className="h-4 w-4" /> JSON</Button>
+          <Button variant="outline" onClick={exportSelectedPDFZip} className="gap-2 border-2 border-primary"><FileDown className="h-4 w-4" /> PDF</Button>
+          <Button variant="outline" onClick={exportSelectedDOCXZip} className="gap-2 border-2 border-primary"><FileDown className="h-4 w-4" /> DOCX</Button>
           <Button variant="destructive" onClick={deleteSelected}><Trash2 className="h-4 w-4" aria-label="Delete" /></Button>
         </div>
       </div>

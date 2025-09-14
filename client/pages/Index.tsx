@@ -44,8 +44,9 @@ import {
   updatePoem,
 } from "@/lib/poems";
 import { format } from "date-fns";
-import { ArrowDownAZ, ArrowDownWideNarrow, Filter, MoreHorizontal, Plus, Search, Star, StarOff, Upload } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, ArrowDownWideNarrow, ArrowUpWideNarrow, Filter, MoreHorizontal, Plus, Search, Star, StarOff, Upload } from "lucide-react";
 import * as mammoth from "mammoth";
+import { toast } from "sonner";
 
 export default function Index() {
   const [poems, setPoems] = useState<Poem[]>(() => loadPoems());
@@ -130,7 +131,7 @@ export default function Index() {
           imported.forEach((p) => importedMap.set(p.id, p));
           jsonCount += imported.length;
         } catch {
-          alert(`Failed to import JSON file: ${file.name}`);
+          toast.error(`Failed to import JSON file: ${file.name}`);
         }
       } else if (isDOCX) {
         try {
@@ -145,12 +146,12 @@ export default function Index() {
           });
           created.push(poem);
         } catch {
-          alert(`Failed to import DOCX file: ${file.name}`);
+          toast.error(`Failed to import DOCX file: ${file.name}`);
         }
       }
     }
     if (jsonCount === 0 && created.length === 0) {
-      alert("No supported files imported. Please select .json or .docx files.");
+      toast.error("No supported files imported. Please select .json or .docx files.");
       return;
     }
     setPoems((prev) => {
@@ -163,7 +164,7 @@ export default function Index() {
     const parts: string[] = [];
     if (jsonCount) parts.push(`JSON: ${jsonCount}`);
     if (created.length) parts.push(`DOCX: ${created.length}`);
-    alert(`Imported ${parts.join(" and ")}`);
+    toast.success(`Imported ${parts.join(" and ")}`);
   };
 
   return (
@@ -174,7 +175,7 @@ export default function Index() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by title, tag, or content"
-                className="pl-9"
+                className="pl-9 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value);
@@ -183,13 +184,14 @@ export default function Index() {
               />
             </div>
             <Select value={sort} onValueChange={(v) => { setSort(v as SortOption); setPage(1); }}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-48 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0">
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="newest"><div className="flex items-center gap-2"><ArrowDownWideNarrow className="h-4 w-4" /> Newest</div></SelectItem>
-                <SelectItem value="oldest">Oldest</SelectItem>
+                <SelectItem value="oldest"><div className="flex items-center gap-2"><ArrowUpWideNarrow className="h-4 w-4" /> Oldest</div></SelectItem>
                 <SelectItem value="alpha"><div className="flex items-center gap-2"><ArrowDownAZ className="h-4 w-4" /> A–Z</div></SelectItem>
+                <SelectItem value="ztoa"><div className="flex items-center gap-2"><ArrowUpAZ className="h-4 w-4" /> Z–A</div></SelectItem>
               </SelectContent>
             </Select>
           </div>

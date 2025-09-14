@@ -82,7 +82,7 @@ export function deletePoem(poems: Poem[], id: string): Poem[] {
   return poems.filter((p) => p.id !== id);
 }
 
-export type SortOption = "newest" | "oldest" | "alpha";
+export type SortOption = "newest" | "oldest" | "alpha" | "ztoa";
 
 export function sortPoems(poems: Poem[], sort: SortOption): Poem[] {
   const arr = [...poems];
@@ -91,6 +91,8 @@ export function sortPoems(poems: Poem[], sort: SortOption): Poem[] {
       return arr.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     case "alpha":
       return arr.sort((a, b) => a.title.localeCompare(b.title));
+    case "ztoa":
+      return arr.sort((a, b) => b.title.localeCompare(a.title));
     case "newest":
     default:
       return arr.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

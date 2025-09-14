@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { loadPoems, Poem, searchPoems, sortPoems, SortOption, toJSON, download } from "@/lib/poems";
 import { exportPoemsToDOCX, exportPoemsToPDF } from "@/lib/exporters";
 import { ArrowDownAZ, ArrowDownWideNarrow, Download, FileDown, FileText, Search, Upload } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Backup() {
   // Deprecated page, kept for backward compatibility. Please use /manage.
@@ -54,9 +55,9 @@ export default function Backup() {
       const next = Array.from(map.values());
       localStorage.setItem("angelhub.poems.v1", JSON.stringify(next));
       setPoems(next);
-      alert(`Imported ${imported.length} poems`);
+      toast.success(`Imported ${imported.length} poems`);
     } catch {
-      alert("Import failed. Please provide a valid angelhub JSON file.");
+      toast.error("Import failed. Please provide a valid angelhub JSON file.");
     }
   }
 

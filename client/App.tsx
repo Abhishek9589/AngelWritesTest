@@ -17,7 +17,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Analytics } from "@vercel/analytics/react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { loadSiteTitle, saveSiteTitle } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +28,7 @@ function Layout() {
   const [title, setTitle] = useState<string>(() => loadSiteTitle());
 
   useEffect(() => {
-    document.title = `${title} — poetry manager`;
+    document.title = `${title} ��� poetry manager`;
   }, [title]);
 
   const onSave = () => {
@@ -47,10 +47,10 @@ function Layout() {
             <span className="text-lg font-extrabold tracking-tight bg-clip-text text-transparent bg-[linear-gradient(120deg,hsl(var(--primary)),hsl(var(--accent-foreground)))]">{title}</span>
           </Link>
           <nav className="flex items-center gap-2">
-            <NavLink end to="/" className={({ isActive }) => cn("px-3 py-2 rounded-md text-sm transition-colors", isActive ? "bg-accent text-accent-foreground border border-primary shadow-sm" : "hover:bg-accent")}>Home</NavLink>
-            <NavLink to="/favorites" className={({ isActive }) => cn("px-3 py-2 rounded-md text-sm transition-colors", isActive ? "bg-accent text-accent-foreground border border-primary shadow-sm" : "hover:bg-accent")}>Favorites</NavLink>
-            <NavLink to="/dashboard" className={({ isActive }) => cn("px-3 py-2 rounded-md text-sm transition-colors", isActive ? "bg-accent text-accent-foreground border border-primary shadow-sm" : "hover:bg-accent")}>Dashboard</NavLink>
-            <NavLink to="/manage" className={({ isActive }) => cn("px-3 py-2 rounded-md text-sm transition-colors", isActive ? "bg-accent text-accent-foreground border border-primary shadow-sm" : "hover:bg-accent")}>Manage</NavLink>
+            <NavLink end to="/" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-primary/15 hover:text-primary")}>Home</NavLink>
+            <NavLink to="/favorites" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-primary/15 hover:text-primary")}>Favorites</NavLink>
+            <NavLink to="/dashboard" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-primary/15 hover:text-primary")}>Dashboard</NavLink>
+            <NavLink to="/manage" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-primary/15 hover:text-primary")}>Manage</NavLink>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">Rename</Button>

@@ -23,6 +23,7 @@ export default function PoemDetail() {
   const navigate = useNavigate();
   const [poems, setPoems] = useState<Poem[]>(() => loadPoems());
   const [openEdit, setOpenEdit] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
 
   useEffect(() => { savePoems(poems); }, [poems]);
 
@@ -39,9 +40,9 @@ export default function PoemDetail() {
   }
 
   const toggleFavorite = () => setPoems((prev) => updatePoem(prev, poem.id, { favorite: !poem.favorite }));
-  const onDelete = () => {
-    if (!confirm("Delete this poem?")) return;
+  const confirmDelete = () => {
     setPoems((prev) => deletePoem(prev, poem.id));
+    setOpenDelete(false);
     navigate("/");
   };
 
@@ -64,14 +65,11 @@ export default function PoemDetail() {
       <div className="flex items-center justify-between">
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:underline"><ArrowLeft className="h-4 w-4" /> Back</Link>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => exportPoemsToPDF([poem], `${poem.title}.pdf`)} className="gap-2"><FileDown className="h-4 w-4" /> PDF</Button>
-          <Button variant="outline" onClick={() => exportPoemsToDOCX([poem], `${poem.title}.docx`)} className="gap-2"><FileDown className="h-4 w-4" /> DOCX</Button>
-          <Button variant="ghost" onClick={toggleFavorite} aria-label={poem.favorite ? "Unfavorite" : "Favorite"}>
-            {poem.favorite ? <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" /> : <StarOff className="h-4 w-4" />}
-          </Button>
+          <Button variant="outline" onClick={() => exportPoemsToPDF([poem], `${poem.title}.pdf`)} className="gap-2 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"><FileDown className="h-4 w-4" /> PDF</Button>
+          <Button variant="outline" onClick={() => exportPoemsToDOCX([poem], `${poem.title}.docx`)} className="gap-2 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"><FileDown className="h-4 w-4" /> DOCX</Button>
           <Dialog open={openEdit} onOpenChange={setOpenEdit}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2"><Edit className="h-4 w-4" /> Edit</Button>
+              <Button variant="outline" className="gap-2 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"><Edit className="h-4 w-4" /> Edit</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -91,8 +89,24 @@ export default function PoemDetail() {
               </form>
             </DialogContent>
           </Dialog>
-          <Button variant="destructive" className="gap-2" onClick={onDelete}><Trash className="h-4 w-4" /> Delete</Button>
+          <Button variant="destructive" size="icon" aria-label="Delete" onClick={() => setOpenDelete(true)}><Trash className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" onClick={toggleFavorite} aria-label={poem.favorite ? "Unfavorite" : "Favorite"}>
+            {poem.favorite ? <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" /> : <StarOff className="h-4 w-4" />}
+          </Button>
         </div>
+
+        <Dialog open={openDelete} onOpenChange={setOpenDelete}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete poem</DialogTitle>
+              <DialogDescription>Are you sure you want to delete this poem? This action cannot be undone.</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpenDelete(false)}>Cancel</Button>
+              <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <article className="mx-auto mt-6 max-w-3xl">
