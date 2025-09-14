@@ -128,7 +128,7 @@ export default function PoemDetail() {
                     ref={titleInputRef}
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    className="max-w-xl"
+                    className="max-w-xl border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                 )}
                 <Button
@@ -150,9 +150,11 @@ export default function PoemDetail() {
             </div>
             <div className="pb-3">
               <label className="text-xs text-muted-foreground block mb-1">Date</label>
-              <Input type="date" value={editDateText} onChange={(e) => setEditDateText(e.target.value)} className="w-40" />
+              <Input type="date" value={editDateText} onChange={(e) => setEditDateText(e.target.value)} className="w-40 border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
             </div>
-            <Textarea className="h-full resize-none" value={editContent} onChange={(e) => setEditContent(e.target.value)} placeholder="Edit your poem..." />
+            <div className="flex-1 pb-[3px]">
+              <Textarea className="h-full resize-none border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" value={editContent} onChange={(e) => setEditContent(e.target.value)} placeholder="Edit your poem..." />
+            </div>
           </div>
         </div>
       )}

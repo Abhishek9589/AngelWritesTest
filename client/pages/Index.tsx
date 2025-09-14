@@ -43,7 +43,7 @@ import {
   SortOption,
   updatePoem,
 } from "@/lib/poems";
-import { format } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { ArrowDownAZ, ArrowUpAZ, ArrowDownWideNarrow, ArrowUpWideNarrow, Filter, MoreHorizontal, Plus, Search, Star, StarOff, Upload } from "lucide-react";
 import * as mammoth from "mammoth";
 import { toast } from "sonner";
@@ -78,30 +78,44 @@ export default function Index() {
   const [writeOpen, setWriteOpen] = useState(false);
   const [writingPoem, setWritingPoem] = useState<Poem | null>(null);
   const [writingContent, setWritingContent] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const dateRef = useRef<HTMLInputElement>(null);
+  const tagsRef = useRef<HTMLInputElement>(null);
+  const draftRef = useRef<HTMLInputElement>(null);
+
+  const applyCreateOrEdit = (title: string, date: string, tags: string[], draft: boolean) => {
+    if (!title.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+    if (editing) {
+      setPoems((prev) => updatePoem(prev, editing.id, { title: title.trim(), date, tags, draft }));
+      toast.success("Poem updated");
+    } else {
+      const poem = createPoem({ title: title.trim(), content: "", date, tags, draft });
+      setPoems((prev) => [poem, ...prev]);
+      setWritingPoem(poem);
+      setWritingContent("");
+      setWriteOpen(true);
+      toast.success("Poem created");
+    }
+    setOpenForm(false);
+    setEditing(null);
+  };
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const title = String(fd.get("title") || "").trim();
+    const title = String(fd.get("title") || "");
     const date = String(fd.get("date") || format(new Date(), "yyyy-MM-dd"));
     const tags = normalizeTags(String(fd.get("tags") || "")
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean));
     const draft = fd.get("draft") === "on";
-    if (!title) return;
 
-    if (editing) {
-      setPoems((prev) => updatePoem(prev, editing.id, { title, date, tags, draft }));
-    } else {
-      const poem = createPoem({ title, content: "", date, tags, draft });
-      setPoems((prev) => [poem, ...prev]);
-      setWritingPoem(poem);
-      setWritingContent("");
-      setWriteOpen(true);
-    }
-    setOpenForm(false);
-    setEditing(null);
+    applyCreateOrEdit(title, date, tags, draft);
     e.currentTarget.reset();
   };
 
@@ -215,14 +229,15 @@ export default function Index() {
                   <DialogTitle>{editing ? "Edit poem" : "Add a new poem"}</DialogTitle>
                   <DialogDescription>Provide title, date, tags (comma separated), and draft. After creating, a full-screen editor opens to write the poem.</DialogDescription>
                 </DialogHeader>
-                <form className="grid gap-3" onSubmit={onSubmit}>
-                  <Input name="title" placeholder="Title" defaultValue={editing?.title} required className="border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                <form ref={formRef} className="grid gap-3" onSubmit={onSubmit}>
+                  <Input ref={titleRef} name="title" placeholder="Title" defaultValue={editing?.title} required className="border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
                   <div className="flex gap-3">
-                    <Input name="date" type="date" className="w-40 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" defaultValue={editing?.date || format(new Date(), "yyyy-MM-dd")} />
-                    <Input name="tags" placeholder="Tags (comma separated)" defaultValue={editing?.tags.join(", ") || ""} className="border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                    <Input ref={dateRef} name="date" type="date" className="w-40 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" defaultValue={editing?.date || format(new Date(), "yyyy-MM-dd")} />
+                    <Input ref={tagsRef} name="tags" placeholder="Tags (comma separated)" defaultValue={editing?.tags.join(", ") || ""} className="border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
                   </div>
                   <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                     <input
+                      ref={draftRef}
                       type="checkbox"
                       name="draft"
                       defaultChecked={!!editing?.draft}
@@ -230,10 +245,34 @@ export default function Index() {
                     />
                     Draft
                   </label>
+                  <button type="submit" className="hidden" aria-hidden="true" />
                   <DialogFooter>
                     <div className="flex-1" />
                     <Button type="button" variant="outline" onClick={() => importRef.current?.click()} className="gap-2"><Upload className="h-4 w-4" /> Import</Button>
-                    <Button type="submit">{editing ? "Save Changes" : "Create Poem"}</Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        const title = titleRef.current?.value ?? "";
+                        const draft = !!draftRef.current?.checked;
+                        const tags = normalizeTags(String(tagsRef.current?.value ?? "")
+                          .split(",")
+                          .map((t) => t.trim())
+                          .filter(Boolean));
+                        // Convert dd/MM/yyyy (visible) to ISO yyyy-MM-dd
+                        const txt = dateRef.current?.value ?? "";
+                        let date = format(new Date(), "yyyy-MM-dd");
+                        const m = txt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                        if (m) {
+                          const d = parse(`${m[1].padStart(2, "0")}/${m[2].padStart(2, "0")}/${m[3]}`, "dd/MM/yyyy", new Date());
+                          if (isValid(d)) date = format(d, "yyyy-MM-dd");
+                        }
+                        applyCreateOrEdit(title, date, tags, draft);
+                        // reset fields after create/edit
+                        formRef.current?.reset();
+                      }}
+                    >
+                      {editing ? "Save Changes" : "Create Poem"}
+                    </Button>
                   </DialogFooter>
                 </form>
               </DialogContent>
@@ -260,6 +299,10 @@ export default function Index() {
               <button className="text-xs underline ml-2 text-muted-foreground" onClick={() => setSelectedTags([])}>Clear</button>
             )}
           </div>
+        )}
+
+        {poems.length === 0 && (
+          <IntroEmpty onCreate={() => setOpenForm(true)} onImport={() => importRef.current?.click()} />
         )}
 
         <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -308,20 +351,7 @@ export default function Index() {
           ))}
         </section>
 
-        <div className="mt-8 flex flex-col items-center gap-2">
-          <p className="text-sm text-muted-foreground">
-            {filtered.length > 0 ? `Showing ${start + 1}–${Math.min(start + paginated.length, filtered.length)} of ${filtered.length} poems` : "Showing 0 of 0 poems"}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
-            <span className="text-sm text-muted-foreground">Page {currentPage} of {totalPages}</span>
-            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
-          </div>
-        </div>
 
-        {poems.length === 0 && (
-          <EmptyState onCreate={() => setOpenForm(true)} />)
-        }
 
         <Dialog open={!!deleteId} onOpenChange={(v) => { if (!v) setDeleteId(null); }}>
           <DialogContent>
@@ -337,7 +367,7 @@ export default function Index() {
         </Dialog>
 
         {writeOpen && writingPoem && (
-          <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur">
+          <div className="fixed inset-0 z-[60] bg-background/95 backdrop-blur">
             <div className="container mx-auto flex h-full flex-col">
               <div className="flex items-center justify-between py-4">
                 <h2 className="text-lg font-semibold">Write: {writingPoem.title}</h2>
@@ -346,31 +376,67 @@ export default function Index() {
                   <Button onClick={() => { if (writingPoem) { setPoems((prev) => updatePoem(prev, writingPoem.id, { content: writingContent })); } setWriteOpen(false); setWritingPoem(null); setWritingContent(""); }}>Save</Button>
                 </div>
               </div>
-              <Textarea className="h-full resize-none" value={writingContent} onChange={(e) => setWritingContent(e.target.value)} placeholder="Start writing your poem..." />
+              <div className="flex-1 pb-[3px]">
+                <Textarea className="h-full resize-none border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" value={writingContent} onChange={(e) => setWritingContent(e.target.value)} placeholder="Start writing your poem..." />
+              </div>
             </div>
           </div>
         )}
 
-        <footer className="mt-10 py-8 text-center text-xs text-muted-foreground">
-          <div className="flex items-center justify-center gap-2">
-            <span>© {new Date().getFullYear()} angelhub</span>
-            <span>·</span>
-            <span>Modern poetry manager</span>
+        {totalPages > 1 && (
+          <div className="fixed bottom-4 right-4 z-40">
+            <div className="flex items-center gap-2 rounded-md border bg-background/95 px-3 py-2 shadow-lg">
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <label htmlFor="pageInput" className="sr-only">Page</label>
+                <input
+                  id="pageInput"
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={currentPage}
+                  onChange={(e) => {
+                    const n = Number(e.target.value);
+                    if (!Number.isNaN(n)) setPage(Math.min(Math.max(1, n), totalPages));
+                  }}
+                  onBlur={(e) => {
+                    const n = Number(e.target.value);
+                    if (!Number.isNaN(n)) setPage(Math.min(Math.max(1, n), totalPages));
+                  }}
+                  className="w-14 rounded border bg-background px-2 py-1 text-center text-sm"
+                />
+                <span>/ {totalPages}</span>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
+            </div>
           </div>
-        </footer>
+        )}
+
     </main>
   );
 }
 
-function EmptyState({ onCreate }: { onCreate: () => void }) {
+function IntroEmpty({ onCreate, onImport }: { onCreate: () => void; onImport: () => void }) {
   return (
-    <div className="mt-16 flex flex-col items-center justify-center gap-4 text-center">
-      <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary to-fuchsia-500 opacity-80" />
-      <h2 className="text-xl font-semibold">Start your poetry collection</h2>
-      <p className="max-w-md text-sm text-muted-foreground">
-        Add your first poem. Use tags like Love, Nature, Life to organize. Favorites help you pin special pieces.
-      </p>
-      <Button onClick={onCreate} className="gap-2"><Plus className="h-4 w-4" /> New Poem</Button>
+    <div className="mt-10 rounded-xl border bg-card p-6 text-card-foreground">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold">Welcome to AngelWrites</h2>
+          <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
+            Create, organize, and cherish your poems. Add titles, dates, tags, mark favorites, search and sort your collection, and export to PDF or DOCX. Edit anytime in a focused full-screen editor.
+          </p>
+          <ul className="mt-3 list-disc pl-5 text-sm text-muted-foreground space-y-1">
+            <li>Create poems with title, date, tags, and draft status</li>
+            <li>Search by title, content, or tag and sort by date or A–Z</li>
+            <li>Favorite special pieces and filter by tags</li>
+            <li>Import from DOCX/JSON and export individual poems</li>
+          </ul>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={onImport} className="gap-2"><Upload className="h-4 w-4" /> Import</Button>
+          <Button onClick={onCreate} className="gap-2"><Plus className="h-4 w-4" /> New Poem</Button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,8 +3,6 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { format, parse, parseISO, isValid } from "date-fns";
 
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 
 function isoToDMY(iso?: string | null): string {
   if (!iso) return "";
@@ -27,7 +25,6 @@ function dmyToISO(dmy: string): string | null {
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, name, defaultValue, value, onChange, ...props }, forwardedRef) => {
     if (type === "date") {
-      const [open, setOpen] = React.useState(false);
 
       // Derive display text from controlled/uncontrolled inputs
       const derivedText = React.useMemo(() => {
@@ -62,11 +59,6 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
         onChange?.({ ...e, target: { ...e.target, value: next } } as React.ChangeEvent<HTMLInputElement>);
       };
 
-      const setFromDate = (d: Date) => {
-        const txt = format(d, "dd/MM/yyyy");
-        setText(txt);
-        setOpen(false);
-      };
 
       return (
         <div className="relative">
@@ -88,29 +80,8 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
             {...props}
           />
 
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                aria-label="Open calendar"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-white hover:opacity-90"
-                tabIndex={-1}
-                onClick={() => setOpen((v) => !v)}
-              >
-                <CalendarIcon className="h-4 w-4" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="p-2 w-auto">
-              <Calendar
-                mode="single"
-                selected={iso ? parseISO(iso) : undefined}
-                onSelect={(d) => { if (d) setFromDate(d); }}
-                fromYear={1900}
-                toYear={2100}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <CalendarIcon aria-hidden="true" className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+
         </div>
       );
     }
