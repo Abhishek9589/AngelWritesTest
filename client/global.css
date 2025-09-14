@@ -104,3 +104,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Improve native date picker icon visibility */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0);
+  opacity: 0.9;
+}
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.2);
+  opacity: 1;
+}

@@ -75,25 +75,30 @@ export default function Index() {
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<Poem | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [writeOpen, setWriteOpen] = useState(false);
+  const [writingPoem, setWritingPoem] = useState<Poem | null>(null);
+  const [writingContent, setWritingContent] = useState("");
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const title = String(fd.get("title") || "").trim();
-    const content = String(fd.get("content") || "").trim();
     const date = String(fd.get("date") || format(new Date(), "yyyy-MM-dd"));
     const tags = normalizeTags(String(fd.get("tags") || "")
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean));
     const draft = fd.get("draft") === "on";
-    if (!title || !content) return;
+    if (!title) return;
 
     if (editing) {
-      setPoems((prev) => updatePoem(prev, editing.id, { title, content, date, tags, draft }));
+      setPoems((prev) => updatePoem(prev, editing.id, { title, date, tags, draft }));
     } else {
-      const poem = createPoem({ title, content, date, tags, draft });
+      const poem = createPoem({ title, content: "", date, tags, draft });
       setPoems((prev) => [poem, ...prev]);
+      setWritingPoem(poem);
+      setWritingContent("");
+      setWriteOpen(true);
     }
     setOpenForm(false);
     setEditing(null);
@@ -208,17 +213,22 @@ export default function Index() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{editing ? "Edit poem" : "Add a new poem"}</DialogTitle>
-                  <DialogDescription>Title, content, date, and tags (comma separated). Optionally mark as draft.</DialogDescription>
+                  <DialogDescription>Provide title, date, tags (comma separated), and draft. After creating, a full-screen editor opens to write the poem.</DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-3" onSubmit={onSubmit}>
-                  <Input name="title" placeholder="Title" defaultValue={editing?.title} required />
-                  <Textarea name="content" placeholder="Poem content" defaultValue={editing?.content} required rows={8} />
+                  <Input name="title" placeholder="Title" defaultValue={editing?.title} required className="border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
                   <div className="flex gap-3">
-                    <Input name="date" type="date" className="w-40" defaultValue={editing?.date || format(new Date(), "yyyy-MM-dd")} />
-                    <Input name="tags" placeholder="Tags (comma separated)" defaultValue={editing?.tags.join(", ") || ""} />
+                    <Input name="date" type="date" className="w-40 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" defaultValue={editing?.date || format(new Date(), "yyyy-MM-dd")} />
+                    <Input name="tags" placeholder="Tags (comma separated)" defaultValue={editing?.tags.join(", ") || ""} className="border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
                   </div>
                   <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                    <input type="checkbox" name="draft" defaultChecked={!!editing?.draft} /> Draft
+                    <input
+                      type="checkbox"
+                      name="draft"
+                      defaultChecked={!!editing?.draft}
+                      className="h-5 w-5 rounded-md border-2 border-primary bg-background text-primary accent-primary transition-colors hover:bg-primary/10 focus:outline-none focus:ring-0 focus:ring-offset-0"
+                    />
+                    Draft
                   </label>
                   <DialogFooter>
                     <div className="flex-1" />
@@ -325,6 +335,21 @@ export default function Index() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {writeOpen && writingPoem && (
+          <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur">
+            <div className="container mx-auto flex h-full flex-col">
+              <div className="flex items-center justify-between py-4">
+                <h2 className="text-lg font-semibold">Write: {writingPoem.title}</h2>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={() => { setWriteOpen(false); setWritingPoem(null); setWritingContent(""); }}>Close</Button>
+                  <Button onClick={() => { if (writingPoem) { setPoems((prev) => updatePoem(prev, writingPoem.id, { content: writingContent })); } setWriteOpen(false); setWritingPoem(null); setWritingContent(""); }}>Save</Button>
+                </div>
+              </div>
+              <Textarea className="h-full resize-none" value={writingContent} onChange={(e) => setWritingContent(e.target.value)} placeholder="Start writing your poem..." />
+            </div>
+          </div>
+        )}
 
         <footer className="mt-10 py-8 text-center text-xs text-muted-foreground">
           <div className="flex items-center justify-center gap-2">

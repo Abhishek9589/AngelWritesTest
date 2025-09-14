@@ -134,7 +134,7 @@ export default function Manage() {
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-left">
             <tr>
-              <th className="p-3 w-12"><input type="checkbox" checked={allChecked} onChange={toggleAll} /></th>
+              <th className="p-3 w-12"><input type="checkbox" checked={allChecked} onChange={toggleAll} aria-label="Select all" className="h-5 w-5 rounded-md border-2 border-primary bg-background text-primary accent-primary transition-colors hover:bg-primary/10 focus:outline-none focus:ring-0 focus:ring-offset-0" /></th>
               <th className="p-3">Title</th>
               <th className="p-3 hidden md:table-cell">Date</th>
               <th className="p-3 hidden sm:table-cell">Tags</th>
@@ -143,7 +143,7 @@ export default function Manage() {
           <tbody>
             {filtered.map((p) => (
               <tr key={p.id} className="border-t">
-                <td className="p-3"><input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p.id)} /></td>
+                <td className="p-3"><input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p.id)} aria-label="Select" className="h-5 w-5 rounded-md border-2 border-primary bg-background text-primary accent-primary transition-colors hover:bg-primary/10 focus:outline-none focus:ring-0 focus:ring-offset-0" /></td>
                 <td className="p-3 font-medium">{p.title}</td>
                 <td className="p-3 hidden md:table-cell">{new Date(p.date).toLocaleDateString()}</td>
                 <td className="p-3 hidden sm:table-cell truncate max-w-[20ch]">{p.tags.join(", ")}</td>

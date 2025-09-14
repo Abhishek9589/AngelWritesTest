@@ -53,7 +53,7 @@ function Layout() {
             <NavLink to="/manage" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-primary/15 hover:text-primary")}>Manage</NavLink>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm">Rename</Button>
+                <Button variant="outline" size="sm" className="border-2 border-primary hover:bg-transparent">Rename</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
