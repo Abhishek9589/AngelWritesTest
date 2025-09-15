@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import RichEditor from "@/components/RichEditor";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -278,7 +280,19 @@ export default function Index() {
   };
 
   return (
-    <main className="container py-6">
+    <main className="container py-10 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
+        <section className="relative overflow-hidden rounded-3xl p-8 md:p-12 mb-6 glass">
+          <div className="relative z-10">
+            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight gradient-text">Welcome to AngelWrites</h1>
+            <p className="mt-2 md:mt-3 max-w-2xl text-sm md:text-base text-muted-foreground">A quiet, gentle home for your words. Gather your poems like petals—write when the moment stirs, keep your favorites close, and return to them when the light is right.</p>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button className="gap-2" onClick={() => setOpenForm(true)}><Plus className="h-4 w-4" /> New Poem</Button>
+              <Button variant="outline" className="gap-2" onClick={() => importRef.current?.click()}><Upload className="h-4 w-4" /> Bring Poems</Button>
+            </div>
+          </div>
+          <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-gradient-to-tr from-cyan-400/40 via-fuchsia-500/30 to-pink-500/30 dark:from-cyan-400/20 dark:via-fuchsia-500/16 dark:to-pink-500/16 blur-3xl"></div>
+          <div className="pointer-events-none absolute -bottom-16 -left-10 h-56 w-56 rounded-full bg-gradient-to-tr from-emerald-300/40 via-cyan-400/30 to-indigo-400/30 dark:from-emerald-300/20 dark:via-cyan-400/16 dark:to-indigo-400/16 blur-3xl"></div>
+        </section>
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-1 items-center gap-2">
             <div className="relative w-full md:w-96">
@@ -286,7 +300,8 @@ export default function Index() {
               <Input
                 ref={searchRef}
                 placeholder="Search by title, tag, or content"
-                className="pl-9 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="pl-9"
+                data-variant="search"
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value);
@@ -295,7 +310,7 @@ export default function Index() {
               />
             </div>
             <Select value={sort} onValueChange={(v) => { setSort(v as SortOption); setPage(1); }}>
-              <SelectTrigger className="w-48 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0">
+              <SelectTrigger className="w-48 rounded-2xl border border-white/30 dark:border-white/10 bg-white/40 dark:bg-white/10 backdrop-blur-md focus:ring-0 focus:ring-offset-0 focus:outline-none shadow-sm hover:brightness-105">
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
@@ -322,25 +337,19 @@ export default function Index() {
                   <DialogDescription>Provide title, date, tags (comma separated), and draft. After creating, a full-screen editor opens to write the poem.</DialogDescription>
                 </DialogHeader>
                 <form ref={formRef} className="grid gap-3" onSubmit={onSubmit}>
-                  <Input ref={titleRef} name="title" placeholder="Title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} className="border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                  <Input ref={titleRef} name="title" placeholder="Title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} className="focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:ring-offset-0" />
                   <div className="flex gap-3">
-                    <Input name="date" type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} className="w-40 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
-                    <Input name="tags" placeholder="Tags (comma separated)" value={formTags} onChange={(e) => setFormTags(e.target.value)} className="border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                    <Input name="date" type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} className="w-40 focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:ring-offset-0" />
+                    <Input name="tags" placeholder="Tags (comma separated)" value={formTags} onChange={(e) => setFormTags(e.target.value)} className="focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:ring-offset-0" />
                   </div>
-                  <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      name="draft"
-                      checked={formDraft}
-                      onChange={(e) => setFormDraft(e.target.checked)}
-                      className="h-5 w-5 rounded-md border-2 border-primary bg-background text-primary accent-primary transition-colors hover:bg-primary/10 focus:outline-none focus:ring-0 focus:ring-offset-0"
-                    />
-                    Draft
-                  </label>
+                  <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                    <Checkbox id="draft" name="draft" checked={formDraft} onCheckedChange={(v) => setFormDraft(!!v)} className="h-5 w-5" />
+                    <Label htmlFor="draft" className="text-sm text-muted-foreground">Draft</Label>
+                  </div>
                   <button type="submit" className="hidden" aria-hidden="true" />
                   <DialogFooter>
                     <div className="flex-1" />
-                    <Button type="button" variant="outline" onClick={() => importRef.current?.click()} className="gap-2"><Upload className="h-4 w-4" /> Import</Button>
+                    <Button type="button" variant="outline" onClick={() => importRef.current?.click()} className="gap-2"><Upload className="h-4 w-4" /> Bring Poems</Button>
                     <Button
                       type="button"
                       onClick={() => {
@@ -387,9 +396,6 @@ export default function Index() {
           </div>
         )}
 
-        {poems.length === 0 && (
-          <IntroEmpty onCreate={() => setOpenForm(true)} onImport={() => importRef.current?.click()} />
-        )}
 
         <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {paginated.map((p) => (
@@ -499,7 +505,7 @@ export default function Index() {
                       if (!Number.isNaN(n)) setPage(Math.min(Math.max(1, n), totalPages));
                     }
                   }}
-                  className="w-14 rounded border bg-background px-2 py-1 text-center text-sm"
+                  className="w-14 rounded-2xl border bg-background px-2 py-1 text-center text-sm"
                 />
                 <span>/ {totalPages}</span>
               </div>
@@ -509,30 +515,5 @@ export default function Index() {
         )}
 
     </main>
-  );
-}
-
-function IntroEmpty({ onCreate, onImport }: { onCreate: () => void; onImport: () => void }) {
-  return (
-    <div className="mt-10 rounded-xl border bg-card p-6 text-card-foreground">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">Welcome to AngelWrites</h2>
-          <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
-            Create, organize, and cherish your poems. Add titles, dates, tags, mark favorites, search and sort your collection, and export to DOCX. Edit anytime in a focused full-screen editor.
-          </p>
-          <ul className="mt-3 list-disc pl-5 text-sm text-muted-foreground space-y-1">
-            <li>Create poems with title, date, tags, and draft status</li>
-            <li>Search by title, content, or tag and sort by date or A–Z</li>
-            <li>Favorite special pieces and filter by tags</li>
-            <li>Import from DOCX/JSON and export individual poems</li>
-          </ul>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={onImport} className="gap-2"><Upload className="h-4 w-4" /> Import</Button>
-          <Button onClick={onCreate} className="gap-2"><Plus className="h-4 w-4" /> New Poem</Button>
-        </div>
-      </div>
-    </div>
   );
 }

@@ -144,69 +144,97 @@ export default function PoemDetail() {
       </article>
 
       {openEdit && (
-        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur overflow-y-auto">
-          <div className="container mx-auto flex min-h-full flex-col">
-            <div className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-3 min-w-0">
-                {!renaming ? (
-                  <h2 className="text-lg font-semibold truncate" title={editTitle}>{editTitle}</h2>
-                ) : (
-                  <Input
-                    ref={titleInputRef}
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    className="max-w-xl border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  />
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Rename"
-                  onClick={() => {
-                    setRenaming((v) => !v);
-                    setTimeout(() => titleInputRef.current?.focus(), 0);
-                  }}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => setOpenEdit(false)}>Close</Button>
-                <Button onClick={saveEdits}>Save</Button>
+        <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-xl overflow-y-auto">
+          <div className="container mx-auto flex min-h-full flex-col gap-3 py-4">
+            <div className="sticky top-3 z-50 rounded-2xl glass px-4 py-3">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  {!renaming ? (
+                    <h2 className="text-xl md:text-2xl font-extrabold truncate gradient-text" title={editTitle}>{editTitle}</h2>
+                  ) : (
+                    <Input
+                      ref={titleInputRef}
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="max-w-xl text-lg md:text-xl"
+                    />
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Rename"
+                    onClick={() => {
+                      setRenaming((v) => !v);
+                      setTimeout(() => titleInputRef.current?.focus(), 0);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:flex md:items-center md:gap-2">
+                  <div className="relative">
+                    <Input
+                      type="date"
+                      value={editDateText}
+                      onChange={(e) => setEditDateText(e.target.value)}
+                      className="w-[160px]"
+                    />
+                  </div>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">#</span>
+                    <Input
+                      value={editTags}
+                      onChange={(e) => setEditTags(e.target.value)}
+                      placeholder="tags, comma, separated"
+                      className="pl-7 w-[260px] md:w-[300px]"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 md:ml-2">
+                    <span className="hidden md:inline text-xs text-muted-foreground">Ctrl/⌘ + S</span>
+                    <Button variant="outline" onClick={() => setOpenEdit(false)}>Close</Button>
+                    <Button onClick={saveEdits}>Save</Button>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="flex-1 pb-[3px]">
+
+            <div className="flex-1 pb-16">
               <RichEditor
                 value={editContent}
                 onChange={setEditContent}
                 placeholder="Edit your poem..."
-                toolbarExtras={
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs text-muted-foreground shrink-0">Date</span>
-                      <Input
-                        type="date"
-                        value={editDateText}
-                        onChange={(e) => setEditDateText(e.target.value)}
-                        className="w-36 border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs text-muted-foreground shrink-0">Tags</span>
-                      <Input
-                        value={editTags}
-                        onChange={(e) => setEditTags(e.target.value)}
-                        placeholder="Tags (comma separated)"
-                        className="w-64 border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
-                    </div>
-                  </div>
-                }
               />
             </div>
+
+            <EditorFooterStats content={editContent} />
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function EditorFooterStats({ content }: { content: string }) {
+  const withoutTags = String(content || "")
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"');
+  const text = withoutTags.replace(/\s+/g, " ").trim();
+  const words = text ? text.split(" ").length : 0;
+  const chars = text.length;
+
+  return (
+    <div className="sticky bottom-3 z-50 mx-auto max-w-3xl">
+      <div className="glass-soft rounded-full px-4 py-2 text-xs flex items-center justify-between gap-4">
+        <span className="text-muted-foreground">{words} words</span>
+        <span className="text-muted-foreground">{chars} characters</span>
+      </div>
     </div>
   );
 }

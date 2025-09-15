@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Poem,
   loadPoems,
@@ -10,6 +12,7 @@ import {
   toJSON,
   download,
   savePoems,
+  formatDate,
 } from "@/lib/poems";
 import { createDOCXBlobForPoem } from "@/lib/exporters";
 import { FileDown, FileJson, Search, Trash2 } from "lucide-react";
@@ -94,12 +97,15 @@ export default function Manage() {
 
   return (
     <div className="container py-10">
-      <h1 className="text-2xl font-semibold">Manage</h1>
+      <h1 className="text-2xl font-extrabold gradient-text">Manage</h1>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search poems" className="pl-9 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search poems" className="pl-9" data-variant="search" value={query} onChange={(e) => setQuery(e.target.value)} />
+          </div>
+          <Button variant="outline" onClick={toggleAll} className="shrink-0">{allChecked ? "Clear" : "Select All"}</Button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={exportSelectedJSON} className="gap-2 border-2 border-primary"><FileJson className="h-4 w-4" /> JSON</Button>
@@ -108,35 +114,38 @@ export default function Manage() {
         </div>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-lg border">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-left">
-            <tr>
-              <th className="p-3 w-12"><input type="checkbox" checked={allChecked} onChange={toggleAll} aria-label="Select all" className="h-5 w-5 rounded-md border-2 border-primary bg-background text-primary accent-primary transition-colors hover:bg-primary/10 focus:outline-none focus:ring-0 focus:ring-offset-0" /></th>
-              <th className="p-3">Title</th>
-              <th className="p-3 hidden md:table-cell">Date</th>
-              <th className="p-3 hidden sm:table-cell">Tags</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((p) => (
-              <tr key={p.id} className="border-t">
-                <td className="p-3"><input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p.id)} aria-label="Select" className="h-5 w-5 rounded-md border-2 border-primary bg-background text-primary accent-primary transition-colors hover:bg-primary/10 focus:outline-none focus:ring-0 focus:ring-offset-0" /></td>
-                <td className="p-3 font-medium">{p.title}</td>
-                <td className="p-3 hidden md:table-cell">{new Date(p.date).toLocaleDateString()}</td>
-                <td className="p-3 hidden sm:table-cell truncate max-w-[20ch]">{p.tags.join(", ")}</td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td className="p-6 text-center text-muted-foreground" colSpan={4}>No poems found</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filtered.map((p) => (
+          <Card
+            key={p.id}
+            role="button"
+            tabIndex={0}
+            aria-pressed={selected.has(p.id)}
+            onClick={() => toggle(p.id)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(p.id); } }}
+            className={selected.has(p.id) ? "ring-2 ring-ring bg-white/60 dark:bg-white/15" : ""}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold tracking-tight line-clamp-1">{p.title}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">{formatDate(p.date)}</p>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {p.tags.map((t) => (
+                  <Badge key={t} variant="secondary" className="text-xs">{t}</Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        {filtered.length === 0 && (
+          <div className="col-span-full text-center text-sm text-muted-foreground py-8">No poems found</div>
+        )}
+      </section>
 
-      <p className="mt-3 text-xs text-muted-foreground">Tip: Use the checkboxes to select poems for actions above.</p>
+      <p className="mt-3 text-xs text-muted-foreground">Tip: Click cards to select. Use Select All to toggle.</p>
 
       <Dialog open={openDelete} onOpenChange={setOpenDelete}>
         <DialogContent>

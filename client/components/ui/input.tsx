@@ -24,6 +24,8 @@ function dmyToISO(dmy: string): string | null {
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, name, defaultValue, value, onChange, ...props }, forwardedRef) => {
+    const ringClasses = "focus-visible:ring-0 focus:ring-0 focus-visible:ring-offset-0 focus:ring-offset-0";
+    const clickFx = "";
     if (type === "date") {
 
       // Derive display text from controlled/uncontrolled inputs
@@ -73,7 +75,8 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
             value={text}
             onChange={handleTextChange}
             className={cn(
-              "flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+              "flex h-10 w-full rounded-2xl border border-white/30 dark:border-white/10 bg-white/40 dark:bg-white/10 pl-10 pr-3 py-2 text-base backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+              ringClasses,
               className,
             )}
             ref={forwardedRef}
@@ -90,7 +93,8 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
       <input
         type={type}
         className={cn(
-          "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm [color-scheme:light] dark:[color-scheme:dark]",
+          "flex h-10 w-full rounded-2xl border border-white/30 dark:border-white/10 bg-white/40 dark:bg-white/10 px-3 py-2 text-base backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm [color-scheme:light] dark:[color-scheme:dark]",
+          ringClasses,
           className,
         )}
         ref={forwardedRef}

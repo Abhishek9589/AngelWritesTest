@@ -20,7 +20,7 @@ export default function RichEditor({ value, onChange, className, placeholder, to
     content: value || "",
     editorProps: {
       attributes: {
-        class: "prose prose-neutral dark:prose-invert max-w-none focus:outline-none min-h-[300px] p-3",
+        class: "prose prose-neutral dark:prose-invert max-w-none focus:outline-none min-h-[320px] p-4 md:p-6",
         spellcheck: "true",
         role: "textbox",
         "aria-multiline": "true",
@@ -41,20 +41,21 @@ export default function RichEditor({ value, onChange, className, placeholder, to
 
   if (!editor) return null;
 
-  const btn = (active: boolean) => `h-8 px-2 ${active ? "bg-primary text-primary-foreground" : ""}`;
+  const btn = (active: boolean) => `h-9 px-2 rounded-full ${active ? "bg-primary text-primary-foreground" : "glass-soft"}`;
 
+  const hasExtras = !!toolbarExtras;
   return (
     <div className={className}>
-      <div className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
-        <div className="flex items-center justify-between gap-3 px-2 py-1 overflow-x-auto">
-          <div className="flex items-center gap-3 shrink-0">{toolbarExtras}</div>
+      <div className="sticky top-0 z-30 px-2 pt-2 mb-4 md:mb-6">
+        <div className={`mx-auto flex items-center ${hasExtras ? "justify-between" : "justify-center"} gap-3 rounded-full border border-white/30 dark:border-white/10 bg-white/50 dark:bg-white/10 px-2 py-1 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.06)]`}>
+          {hasExtras && <div className="flex items-center gap-3 min-w-0">{toolbarExtras}</div>}
           <TooltipProvider delayDuration={150}>
             <div className="flex items-center gap-1 shrink-0">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     aria-label="Bold"
                     title="Bold"
@@ -70,7 +71,7 @@ export default function RichEditor({ value, onChange, className, placeholder, to
                 <TooltipTrigger asChild>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     aria-label="Italic"
                     title="Italic"
@@ -86,7 +87,7 @@ export default function RichEditor({ value, onChange, className, placeholder, to
                 <TooltipTrigger asChild>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     aria-label="Strikethrough"
                     title="Strikethrough"
@@ -103,7 +104,7 @@ export default function RichEditor({ value, onChange, className, placeholder, to
                 <TooltipTrigger asChild>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     aria-label="Bullet list"
                     title="Bullet list"
@@ -119,7 +120,7 @@ export default function RichEditor({ value, onChange, className, placeholder, to
                 <TooltipTrigger asChild>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     aria-label="Ordered list"
                     title="Ordered list"
@@ -136,11 +137,11 @@ export default function RichEditor({ value, onChange, className, placeholder, to
                 <TooltipTrigger asChild>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     aria-label="Undo"
                     title="Undo"
-                    className="h-8 px-2"
+                    className="h-9 px-2 rounded-full glass-soft"
                     onClick={() => editor.chain().focus().undo().run()}
                     disabled={!editor.can().undo()}
                   >
@@ -153,11 +154,11 @@ export default function RichEditor({ value, onChange, className, placeholder, to
                 <TooltipTrigger asChild>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     aria-label="Redo"
                     title="Redo"
-                    className="h-8 px-2"
+                    className="h-9 px-2 rounded-full glass-soft"
                     onClick={() => editor.chain().focus().redo().run()}
                     disabled={!editor.can().redo()}
                   >
@@ -171,11 +172,11 @@ export default function RichEditor({ value, onChange, className, placeholder, to
                 <TooltipTrigger asChild>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     aria-label="Clear formatting"
                     title="Clear formatting"
-                    className="h-8 px-2"
+                    className="h-9 px-2 rounded-full glass-soft"
                     onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
                   >
                     <Eraser className="h-4 w-4" />
@@ -187,7 +188,7 @@ export default function RichEditor({ value, onChange, className, placeholder, to
           </TooltipProvider>
         </div>
       </div>
-      <div className="rounded-md border-2 border-primary">
+      <div className="glass rounded-3xl">
         <EditorContent editor={editor} />
       </div>
     </div>

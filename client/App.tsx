@@ -30,18 +30,18 @@ function Layout() {
 
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
+    <div className="min-h-screen pt-24">
+      <header className="fixed top-4 left-1/2 z-40 w-[min(1120px,95%)] -translate-x-1/2 rounded-2xl glass">
+        <div className="flex h-14 items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2">
             <img src="https://cdn.builder.io/api/v1/image/assets%2Faddb4921f9a9401eae5d6e57d8e51a79%2F11516b0de05449e998114111d9a9fa80?format=webp&width=64" alt={title} className="h-8 w-8 object-contain" />
-            <span className="text-lg font-extrabold tracking-tight bg-clip-text text-transparent bg-[linear-gradient(120deg,hsl(var(--primary)),hsl(var(--accent-foreground)))]">{title}</span>
+            <span className="text-lg font-extrabold tracking-tight gradient-text">{title}</span>
           </Link>
           <nav className="flex items-center gap-2">
-            <NavLink end to="/" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-primary/15 hover:text-primary")}>Home</NavLink>
-            <NavLink to="/favorites" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-primary/15 hover:text-primary")}>Favorites</NavLink>
-            <NavLink to="/dashboard" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-primary/15 hover:text-primary")}>Dashboard</NavLink>
-            <NavLink to="/manage" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-primary/15 hover:text-primary")}>Manage</NavLink>
+            <NavLink end to="/" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-transparent border border-transparent hover:border-black/20 dark:hover:border-white/25")}>Home</NavLink>
+            <NavLink to="/favorites" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-transparent border border-transparent hover:border-black/20 dark:hover:border-white/25")}>Favorites</NavLink>
+            <NavLink to="/dashboard" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-transparent border border-transparent hover:border-black/20 dark:hover:border-white/25")}>Dashboard</NavLink>
+            <NavLink to="/manage" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-transparent border border-transparent hover:border-black/20 dark:hover:border-white/25")}>Manage</NavLink>
             <ThemeToggle />
           </nav>
         </div>

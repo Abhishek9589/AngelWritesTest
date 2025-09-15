@@ -64,7 +64,7 @@ export default function Backup() {
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search poems" className="pl-9" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <Input placeholder="Search poems" className="pl-9" data-variant="search" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={doExportJSON} className="gap-2"><Download className="h-4 w-4" /> JSON</Button>
