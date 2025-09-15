@@ -131,9 +131,13 @@ input[type="number"] {
   --scrollbar-size: 10px;
 }
 /* Firefox */
-html {
+* {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--primary) / 0.6) hsl(var(--muted));
+}
+body {
+  /* ensure body never scrolls when overlays lock it */
+  overscroll-behavior: contain;
 }
 /* WebKit */
 *::-webkit-scrollbar {

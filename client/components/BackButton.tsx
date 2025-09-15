@@ -13,8 +13,12 @@ interface BackButtonProps {
 export default function BackButton({ className, label = "Back", to }: BackButtonProps) {
   const navigate = useNavigate();
   const onClick = () => {
-    if (to) navigate(to);
-    else if (window.history.length > 1) navigate(-1);
+    if (to) {
+      navigate(to);
+      return;
+    }
+    const idx = (window.history.state && (window.history.state as any).idx) ?? 0;
+    if (idx > 0) navigate(-1);
     else navigate("/");
   };
 

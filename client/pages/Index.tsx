@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import RichEditor from "@/components/RichEditor";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -241,11 +241,13 @@ export default function Index() {
       } else if (isDOCX) {
         try {
           const arrayBuffer = await file.arrayBuffer();
-          const result = await mammoth.extractRawText({ arrayBuffer });
+          const { docxArrayBufferToHTML } = await import("@/lib/docx");
+          const html = await docxArrayBufferToHTML(arrayBuffer);
+          const { sanitizeHtml } = await import("@/lib/html");
           const title = file.name.replace(/\.docx$/i, "");
           const poem = createPoem({
             title,
-            content: (result.value || "").trim(),
+            content: sanitizeHtml(html),
             date: format(new Date(), "yyyy-MM-dd"),
             tags: [],
           });
@@ -460,7 +462,7 @@ export default function Index() {
                 </div>
               </div>
               <div className="flex-1 pb-[3px]">
-                <Textarea className="h-full resize-none border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" value={writingContent} onChange={(e) => setWritingContent(e.target.value)} placeholder="Start writing your poem..." />
+                <RichEditor value={writingContent} onChange={setWritingContent} className="border-2 border-primary" placeholder="Start writing your poem..." />
               </div>
             </div>
           </div>
@@ -517,7 +519,7 @@ function IntroEmpty({ onCreate, onImport }: { onCreate: () => void; onImport: ()
         <div>
           <h2 className="text-xl font-semibold">Welcome to AngelWrites</h2>
           <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
-            Create, organize, and cherish your poems. Add titles, dates, tags, mark favorites, search and sort your collection, and export to PDF or DOCX. Edit anytime in a focused full-screen editor.
+            Create, organize, and cherish your poems. Add titles, dates, tags, mark favorites, search and sort your collection, and export to DOCX. Edit anytime in a focused full-screen editor.
           </p>
           <ul className="mt-3 list-disc pl-5 text-sm text-muted-foreground space-y-1">
             <li>Create poems with title, date, tags, and draft status</li>

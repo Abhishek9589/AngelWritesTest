@@ -99,12 +99,16 @@ export function sortPoems(poems: Poem[], sort: SortOption): Poem[] {
   }
 }
 
+export function stripHtml(input: string): string {
+  return String(input || "").replace(/<[^>]*>/g, " ");
+}
+
 export function searchPoems(poems: Poem[], query: string): Poem[] {
   const q = query.trim().toLowerCase();
   if (!q) return poems;
   return poems.filter((p) =>
     p.title.toLowerCase().includes(q) ||
-    p.content.toLowerCase().includes(q) ||
+    stripHtml(p.content).toLowerCase().includes(q) ||
     p.tags.some((t) => t.toLowerCase().includes(q)),
   );
 }
@@ -130,7 +134,8 @@ export function normalizeTags(tags: string[]): string[] {
 }
 
 export function preview(text: string, max = 140): string {
-  const trimmed = text.replace(/\s+/g, " ").trim();
+  const stripped = stripHtml(text);
+  const trimmed = stripped.replace(/\s+/g, " ").trim();
   return trimmed.length > max ? trimmed.slice(0, max - 1) + "…" : trimmed;
 }
 

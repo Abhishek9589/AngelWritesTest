@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import RichEditor from "@/components/RichEditor";
+import { sanitizeHtml } from "@/lib/html";
 import {
   Poem,
   formatDate,
@@ -14,7 +15,7 @@ import {
   deletePoem,
   normalizeTags,
 } from "@/lib/poems";
-import { exportPoemsToDOCX, exportPoemsToPDF } from "@/lib/exporters";
+import { exportPoemsToDOCX } from "@/lib/exporters";
 import BackButton from "@/components/BackButton";
 import { Edit, Star, StarOff, Trash, FileDown, Pencil } from "lucide-react";
 import { format, parse, isValid } from "date-fns";
@@ -64,6 +65,16 @@ export default function PoemDetail() {
     }
   }, [poem, openEdit]);
 
+  // Lock background scroll when the editor overlay is open
+  useEffect(() => {
+    if (!openEdit) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [openEdit]);
+
   if (!poem) {
     return (
       <div className="container py-10">
@@ -98,7 +109,6 @@ export default function PoemDetail() {
       <div className="flex items-center justify-between">
         <BackButton />
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => exportPoemsToPDF([poem], `${poem.title}.pdf`)} className="gap-2 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"><FileDown className="h-4 w-4" /> PDF</Button>
           <Button variant="outline" onClick={() => exportPoemsToDOCX([poem], `${poem.title}.docx`)} className="gap-2 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"><FileDown className="h-4 w-4" /> DOCX</Button>
           <Button variant="outline" className="gap-2 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" onClick={() => setOpenEdit(true)}><Edit className="h-4 w-4" /> Edit</Button>
           <Button variant="destructive" size="icon" aria-label="Delete" onClick={() => setOpenDelete(true)}><Trash className="h-4 w-4" /></Button>
@@ -130,14 +140,12 @@ export default function PoemDetail() {
         {poem.draft && (
           <div className="mt-2 inline-block rounded-md bg-yellow-100 text-yellow-900 text-[10px] px-2 py-0.5 dark:bg-yellow-900 dark:text-yellow-100">Draft</div>
         )}
-        <div className="prose prose-neutral dark:prose-invert mt-6 whitespace-pre-wrap leading-7">
-          {poem.content}
-        </div>
+        <div className="prose prose-neutral dark:prose-invert mt-6 leading-7" dangerouslySetInnerHTML={{ __html: sanitizeHtml(poem.content) }} />
       </article>
 
       {openEdit && (
-        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur">
-          <div className="container mx-auto flex h-full flex-col">
+        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur overflow-y-auto">
+          <div className="container mx-auto flex min-h-full flex-col">
             <div className="flex items-center justify-between py-4">
               <div className="flex items-center gap-3 min-w-0">
                 {!renaming ? (
@@ -167,18 +175,34 @@ export default function PoemDetail() {
                 <Button onClick={saveEdits}>Save</Button>
               </div>
             </div>
-            <div className="pb-3 grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">Date</label>
-                <Input type="date" value={editDateText} onChange={(e) => setEditDateText(e.target.value)} className="w-40 border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">Tags</label>
-                <Input value={editTags} onChange={(e) => setEditTags(e.target.value)} placeholder="Tags (comma separated)" className="border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
-              </div>
-            </div>
             <div className="flex-1 pb-[3px]">
-              <Textarea className="h-full resize-none border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" value={editContent} onChange={(e) => setEditContent(e.target.value)} placeholder="Edit your poem..." />
+              <RichEditor
+                value={editContent}
+                onChange={setEditContent}
+                placeholder="Edit your poem..."
+                toolbarExtras={
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs text-muted-foreground shrink-0">Date</span>
+                      <Input
+                        type="date"
+                        value={editDateText}
+                        onChange={(e) => setEditDateText(e.target.value)}
+                        className="w-36 border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs text-muted-foreground shrink-0">Tags</span>
+                      <Input
+                        value={editTags}
+                        onChange={(e) => setEditTags(e.target.value)}
+                        placeholder="Tags (comma separated)"
+                        className="w-64 border-2 border-primary focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                    </div>
+                  </div>
+                }
+              />
             </div>
           </div>
         </div>

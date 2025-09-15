@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { loadPoems, Poem, searchPoems, sortPoems, SortOption, toJSON, download } from "@/lib/poems";
-import { exportPoemsToDOCX, exportPoemsToPDF } from "@/lib/exporters";
-import { ArrowDownAZ, ArrowDownWideNarrow, Download, FileDown, FileText, Search, Upload } from "lucide-react";
+import { exportPoemsToDOCX } from "@/lib/exporters";
+import { Download, FileDown, Search, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Backup() {
@@ -33,12 +33,8 @@ export default function Backup() {
   };
 
   const importRef = useRef<HTMLInputElement>(null);
-  const doExportJSON = () => download("angelhub-backup.json", toJSON(filtered), "application/json");
+  const doExportJSON = () => download("AngelWrites-backup.json", toJSON(filtered), "application/json");
 
-  async function exportSelectedPDF() {
-    const list = poems.filter((p) => selected.has(p.id));
-    await exportPoemsToPDF(list.length ? list : filtered);
-  }
   async function exportSelectedDOCX() {
     const list = poems.filter((p) => selected.has(p.id));
     await exportPoemsToDOCX(list.length ? list : filtered);
@@ -74,7 +70,6 @@ export default function Backup() {
           <Button variant="outline" onClick={doExportJSON} className="gap-2"><Download className="h-4 w-4" /> JSON</Button>
           <input ref={importRef} type="file" accept="application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onImport(f); e.currentTarget.value = ""; }} />
           <Button variant="secondary" onClick={() => importRef.current?.click()} className="gap-2"><Upload className="h-4 w-4" /> Import JSON</Button>
-          <Button onClick={exportSelectedPDF} className="gap-2"><FileDown className="h-4 w-4" /> PDF</Button>
           <Button onClick={exportSelectedDOCX} className="gap-2"><FileDown className="h-4 w-4" /> DOCX</Button>
         </div>
       </div>

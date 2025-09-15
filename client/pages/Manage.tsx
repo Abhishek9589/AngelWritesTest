@@ -11,7 +11,7 @@ import {
   download,
   savePoems,
 } from "@/lib/poems";
-import { createDOCXBlobForPoem, createPDFBlobForPoem } from "@/lib/exporters";
+import { createDOCXBlobForPoem } from "@/lib/exporters";
 import { FileDown, FileJson, Search, Trash2 } from "lucide-react";
 import JSZip from "jszip";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -43,7 +43,7 @@ export default function Manage() {
   const exportSelectedJSON = () => {
     if (selected.size === 0) return toast.info("Select poems first.");
     const list = poems.filter((p) => selected.has(p.id));
-    download("angelhub-selected.json", toJSON(list), "application/json");
+    download("AngelWrites-selected.json", toJSON(list), "application/json");
   };
 
   function sanitize(name: string, ext: string) {
@@ -59,27 +59,6 @@ export default function Manage() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-  }
-
-  async function exportSelectedPDFZip() {
-    if (selected.size === 0) return toast.info("Select poems first.");
-    const list = poems.filter((p) => selected.has(p.id));
-
-    // If only one poem is selected, download the individual PDF directly (no zip)
-    if (list.length === 1) {
-      const p = list[0];
-      const blob = await createPDFBlobForPoem(p);
-      downloadBlob(sanitize(p.title, "pdf"), blob);
-      return;
-    }
-
-    const zip = new JSZip();
-    for (const p of list) {
-      const blob = await createPDFBlobForPoem(p);
-      zip.file(sanitize(p.title, "pdf"), blob);
-    }
-    const out = await zip.generateAsync({ type: "blob" });
-    downloadBlob("poems-pdf.zip", out);
   }
 
   async function exportSelectedDOCXZip() {
@@ -124,7 +103,6 @@ export default function Manage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={exportSelectedJSON} className="gap-2 border-2 border-primary"><FileJson className="h-4 w-4" /> JSON</Button>
-          <Button variant="outline" onClick={exportSelectedPDFZip} className="gap-2 border-2 border-primary"><FileDown className="h-4 w-4" /> PDF</Button>
           <Button variant="outline" onClick={exportSelectedDOCXZip} className="gap-2 border-2 border-primary"><FileDown className="h-4 w-4" /> DOCX</Button>
           <Button variant="destructive" onClick={deleteSelected}><Trash2 className="h-4 w-4" aria-label="Delete" /></Button>
         </div>
