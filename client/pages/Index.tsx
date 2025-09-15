@@ -47,7 +47,7 @@ import {
   updatePoemWithVersion,
 } from "@/lib/poems";
 import { format, parse, isValid } from "date-fns";
-import { ArrowDownAZ, ArrowUpAZ, ArrowDownWideNarrow, ArrowUpWideNarrow, Filter, MoreHorizontal, Plus, Search, Star, StarOff, Upload, Link as LinkIcon, Trash2 } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, ArrowDownWideNarrow, ArrowUpWideNarrow, Filter, MoreHorizontal, Plus, Search, Star, StarOff, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Index() {
@@ -315,9 +315,11 @@ export default function Index() {
           <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-gradient-to-tr from-cyan-400/40 via-fuchsia-500/30 to-pink-500/30 dark:from-cyan-400/20 dark:via-fuchsia-500/16 dark:to-pink-500/16 blur-3xl"></div>
           <div className="pointer-events-none absolute -bottom-16 -left-10 h-56 w-56 rounded-full bg-gradient-to-tr from-emerald-300/40 via-cyan-400/30 to-indigo-400/30 dark:from-emerald-300/20 dark:via-cyan-400/16 dark:to-indigo-400/16 blur-3xl"></div>
         </section>
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-1 items-center gap-2">
-            <div className="relative w-full md:w-96">
+
+        {poems.length > 0 && (
+        <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center gap-2">
+            <div className="relative w-72 md:w-96">
               <Input
                 ref={searchRef}
                 type="search"
@@ -343,56 +345,57 @@ export default function Index() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-2">
-            <input ref={importRef} type="file" accept=".docx,application/json" multiple className="hidden" onChange={(e) => {
-              const fs = e.target.files;
-              if (fs && fs.length) onImportFiles(fs);
-              e.currentTarget.value = "";
-            }} />
-            <Dialog open={openForm} onOpenChange={(v) => { setOpenForm(v); if (!v) setEditing(null); }}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{editing ? "Edit poem" : "Add a new poem"}</DialogTitle>
-                  <DialogDescription>Provide title, date, tags (comma separated), and draft. After creating, a full-screen editor opens to write the poem.</DialogDescription>
-                </DialogHeader>
-                <form ref={formRef} className="grid gap-3" onSubmit={onSubmit}>
-                  <Input ref={titleRef} name="title" placeholder="Title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} className="focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:ring-offset-0" />
-                  <div className="flex gap-3">
-                    <Input name="date" type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} className="w-40 focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:ring-offset-0" />
-                    <Input name="tags" placeholder="Tags (comma separated)" value={formTags} onChange={(e) => setFormTags(e.target.value)} className="focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:ring-offset-0" />
-                  </div>
-                  <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                    <Checkbox id="draft" name="draft" checked={formDraft} onCheckedChange={(v) => setFormDraft(!!v)} className="h-5 w-5" />
-                    <Label htmlFor="draft" className="text-sm text-muted-foreground">Draft</Label>
-                  </div>
-                  <button type="submit" className="hidden" aria-hidden="true" />
-                  <DialogFooter>
-                    <div className="flex-1" />
-                    <Button type="button" variant="outline" onClick={() => importRef.current?.click()} className="gap-2"><Upload className="h-4 w-4" /> Bring Poems</Button>
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        const title = (titleRef.current?.value ?? formTitle).toString();
-                        const draft = formDraft;
-                        const tags = normalizeTags(formTags.split(",").map((t) => t.trim()).filter(Boolean));
-                        const date = formDate || format(new Date(), "yyyy-MM-dd");
-                        const ok = applyCreateOrEdit(title, date, tags, draft);
-                        if (ok) {
-                          setFormTitle("");
-                          setFormDate(format(new Date(), "yyyy-MM-dd"));
-                          setFormTags("");
-                          setFormDraft(false);
-                        }
-                      }}
-                    >
-                      {editing ? "Save Changes" : "Create Poem"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
         </div>
+        )}
+
+        <input ref={importRef} type="file" accept=".docx,application/json" multiple className="hidden" onChange={(e) => {
+          const fs = e.target.files;
+          if (fs && fs.length) onImportFiles(fs);
+          e.currentTarget.value = "";
+        }} />
+
+        <Dialog open={openForm} onOpenChange={(v) => { setOpenForm(v); if (!v) setEditing(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editing ? "Edit poem" : "Add a new poem"}</DialogTitle>
+              <DialogDescription>Provide title, date, tags (comma separated), and draft. After creating, a full-screen editor opens to write the poem.</DialogDescription>
+            </DialogHeader>
+            <form ref={formRef} className="grid gap-3" onSubmit={onSubmit}>
+              <Input ref={titleRef} name="title" placeholder="Title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} className="focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:ring-offset-0" />
+              <div className="flex gap-3">
+                <Input name="date" type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} className="w-40 focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:ring-offset-0" />
+                <Input name="tags" placeholder="Tags (comma separated)" value={formTags} onChange={(e) => setFormTags(e.target.value)} className="focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:ring-offset-0" />
+              </div>
+              <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                <Checkbox id="draft" name="draft" checked={formDraft} onCheckedChange={(v) => setFormDraft(!!v)} className="h-5 w-5" />
+                <Label htmlFor="draft" className="text-sm text-muted-foreground">Draft</Label>
+              </div>
+              <button type="submit" className="hidden" aria-hidden="true" />
+              <DialogFooter>
+                <div className="flex-1" />
+                <Button type="button" variant="outline" onClick={() => importRef.current?.click()} className="gap-2"><Upload className="h-4 w-4" /> Bring Poems</Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const title = (titleRef.current?.value ?? formTitle).toString();
+                    const draft = formDraft;
+                    const tags = normalizeTags(formTags.split(",").map((t) => t.trim()).filter(Boolean));
+                    const date = formDate || format(new Date(), "yyyy-MM-dd");
+                    const ok = applyCreateOrEdit(title, date, tags, draft);
+                    if (ok) {
+                      setFormTitle("");
+                      setFormDate(format(new Date(), "yyyy-MM-dd"));
+                      setFormTags("");
+                      setFormDraft(false);
+                    }
+                  }}
+                >
+                  {editing ? "Save Changes" : "Create Poem"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         {tags.length > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -437,12 +440,6 @@ export default function Index() {
                     >
                       {p.favorite ? <Star className="h-4 w-4 fill-yellow-500" /> : <StarOff className="h-4 w-4" />}
                     </button>
-                    <Button size="icon" variant="ghost" aria-label="Copy link" onClick={() => navigator.clipboard.writeText(`${location.origin}/poem/${p.id}`)}>
-                      <LinkIcon className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" aria-label="Delete" onClick={() => handleDelete(p.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button size="icon" variant="ghost" aria-label="Actions"><MoreHorizontal className="h-4 w-4" /></Button>

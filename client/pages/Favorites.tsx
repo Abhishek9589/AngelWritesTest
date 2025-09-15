@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { loadPoems, Poem, savePoems, updatePoem, formatDate } from "@/lib/poems";
+import { loadPoems, Poem, savePoems, updatePoem, formatDate, preview } from "@/lib/poems";
 import { Star, StarOff } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -52,7 +52,7 @@ export default function Favorites() {
                   <Star className="h-4 w-4 fill-yellow-500" />
                 </button>
               </div>
-              <p className="mt-3 text-sm text-muted-foreground line-clamp-3">{p.content}</p>
+              <p className="mt-3 text-sm text-muted-foreground line-clamp-3">{preview(p.content, 220)}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {p.tags.map((t) => (
                   <Badge key={t} variant="secondary">{t}</Badge>
