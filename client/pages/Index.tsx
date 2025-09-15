@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import RichEditor from "@/components/RichEditor";
+const RichEditor = lazy(() => import("@/components/RichEditor"));
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -48,13 +48,16 @@ import {
 } from "@/lib/poems";
 import { format, parse, isValid } from "date-fns";
 import { ArrowDownAZ, ArrowUpAZ, ArrowDownWideNarrow, ArrowUpWideNarrow, Filter, MoreHorizontal, Plus, Search, Star, StarOff, Upload, Link as LinkIcon, Trash2 } from "lucide-react";
-import * as mammoth from "mammoth";
 import { toast } from "sonner";
 
 export default function Index() {
+  const STORAGE_KEYS = { query: "poems:query", sort: "poems:sort" } as const;
   const [poems, setPoems] = useState<Poem[]>(() => loadPoems());
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<SortOption>("newest");
+  const [query, setQuery] = useState<string>(() => localStorage.getItem(STORAGE_KEYS.query) ?? "");
+  const [sort, setSort] = useState<SortOption>(() => {
+    const s = localStorage.getItem(STORAGE_KEYS.sort) as SortOption | null;
+    return s === "newest" || s === "oldest" || s === "alpha" || s === "ztoa" ? s : "newest";
+  });
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const pageSize = 9;
@@ -62,6 +65,13 @@ export default function Index() {
   useEffect(() => {
     savePoems(poems);
   }, [poems]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.query, query);
+  }, [query]);
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.sort, sort);
+  }, [sort]);
 
   const tags = useMemo(() => allTags(poems), [poems]);
 
@@ -308,11 +318,11 @@ export default function Index() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-1 items-center gap-2">
             <div className="relative w-full md:w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 ref={searchRef}
+                type="search"
+                aria-label="Search poems"
                 placeholder="Search by title, tag, or content"
-                className="pl-9"
                 data-variant="search"
                 value={query}
                 onChange={(e) => {
@@ -322,7 +332,7 @@ export default function Index() {
               />
             </div>
             <Select value={sort} onValueChange={(v) => { setSort(v as SortOption); setPage(1); }}>
-              <SelectTrigger className="w-48 rounded-2xl border border-white/30 dark:border-white/10 bg-white/40 dark:bg-white/10 backdrop-blur-md focus:ring-0 focus:ring-offset-0 focus:outline-none shadow-sm hover:brightness-105">
+              <SelectTrigger aria-label="Sort poems" className="w-48 rounded-2xl border border-white/30 dark:border-white/10 bg-white/40 dark:bg-white/10 backdrop-blur-md focus:ring-0 focus:ring-offset-0 focus:outline-none shadow-sm hover:brightness-105">
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
@@ -340,9 +350,6 @@ export default function Index() {
               e.currentTarget.value = "";
             }} />
             <Dialog open={openForm} onOpenChange={(v) => { setOpenForm(v); if (!v) setEditing(null); }}>
-              <DialogTrigger asChild>
-                <Button className="gap-2"><Plus className="h-4 w-4" /> New Poem</Button>
-              </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{editing ? "Edit poem" : "Add a new poem"}</DialogTitle>
@@ -396,6 +403,8 @@ export default function Index() {
                 <button
                   key={t}
                   onClick={() => { setSelectedTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]); setPage(1); }}
+                  aria-pressed={active}
+                  aria-label={`Filter by tag: ${t}${active ? " (selected)" : ""}`}
                   className={`rounded-full border px-3 py-1 text-xs transition ${active ? "bg-primary text-primary-foreground border-transparent" : "hover:bg-accent"}`}
                 >
                   #{t}
@@ -409,16 +418,6 @@ export default function Index() {
         )}
 
 
-        {filtered.length === 0 && (
-          <div className="mt-10 rounded-3xl glass p-8 text-center">
-            <h2 className="text-xl font-semibold">No poems yet</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Start by creating a poem or import from JSON/DOCX. You can tag poems for easy filtering later.</p>
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <Button onClick={() => setOpenForm(true)} className="gap-2"><Plus className="h-4 w-4" /> New Poem</Button>
-              <Button variant="outline" onClick={() => importRef.current?.click()} className="gap-2"><Upload className="h-4 w-4" /> Import</Button>
-            </div>
-          </div>
-        )}
 
         {filtered.length > 0 && (
         <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -489,7 +488,7 @@ export default function Index() {
         </Dialog>
 
         {writeOpen && writingPoem && (
-          <div className="fixed inset-0 z-[60] bg-background/95 backdrop-blur">
+          <div className="fixed inset-0 z-[60] bg-background/95 backdrop-blur" role="dialog" aria-modal="true" aria-label={`Edit poem: ${writingPoem.title}`}>
             <div className="container mx-auto flex h-full flex-col">
               <div className="flex items-center justify-between py-4">
                 <h2 className="text-lg font-semibold">Write: {writingPoem.title}</h2>
@@ -499,7 +498,9 @@ export default function Index() {
                 </div>
               </div>
               <div className="flex-1 pb-[3px]">
-                <RichEditor value={writingContent} onChange={setWritingContent} className="border-2 border-primary" placeholder="Start writing your poem..." />
+                <Suspense fallback={<div className="glass rounded-3xl p-6 text-sm">Loading editor…</div>}>
+                  <RichEditor value={writingContent} onChange={setWritingContent} className="border-2 border-primary" placeholder="Start writing your poem..." />
+                </Suspense>
               </div>
             </div>
           </div>

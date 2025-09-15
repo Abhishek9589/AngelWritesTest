@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { loadPoems, Poem, savePoems, updatePoem, formatDate } from "@/lib/poems";
-import { Search, Star, StarOff } from "lucide-react";
+import { Star, StarOff } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Favorites() {
@@ -31,8 +31,7 @@ export default function Favorites() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold gradient-text">Favorites</h1>
         <div className="relative w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search favorites" className="pl-9" data-variant="search" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <Input type="search" placeholder="Search favorites" data-variant="search" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
       </div>
 
