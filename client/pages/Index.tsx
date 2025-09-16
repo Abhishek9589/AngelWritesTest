@@ -163,12 +163,21 @@ export default function Index() {
       }
 
       if (!openForm && !writeOpen) {
-        if (e.key === "/") {
+        const target = e.target as HTMLElement | null;
+        const isTyping =
+          !!target &&
+          (target.tagName === "INPUT" ||
+            target.tagName === "TEXTAREA" ||
+            (target as HTMLElement).isContentEditable ||
+            !!target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]'));
+        if (isTyping) return;
+
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key === "/") {
           e.preventDefault();
           searchRef.current?.focus();
           return;
         }
-        if (e.key.toLowerCase() === "n") {
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "n") {
           e.preventDefault();
           setOpenForm(true);
           return;
