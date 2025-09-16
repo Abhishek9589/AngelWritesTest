@@ -119,9 +119,9 @@ export default function PoemDetail() {
 
   return (
     <div className="container py-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <BackButton />
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 justify-end">
           <Button variant="outline" onClick={() => exportPoemsToDOCX([poem], `${poem.title}.docx`)} className="gap-2 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"><FileDown className="h-4 w-4" /> DOCX</Button>
           <Button variant="outline" className="gap-2 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" onClick={() => setOpenEdit(true)}><Edit className="h-4 w-4" /> Edit</Button>
           <Button variant="outline" className="gap-2 border-2 border-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0" onClick={() => setOpenHistory(true)}>History</Button>
@@ -230,7 +230,7 @@ export default function PoemDetail() {
             <DialogTitle>Version history</DialogTitle>
             <DialogDescription>Restore an earlier version of this poem.</DialogDescription>
           </DialogHeader>
-          <div className="max-h-[50vh] overflow-y-auto space-y-2">
+          <div className="max-h-[70vh] overflow-y-auto space-y-2">
             {(poem.versions || []).slice().reverse().map((v) => (
               <div key={v.id} className="rounded-md border p-3">
                 <div className="flex items-center justify-between gap-2">
