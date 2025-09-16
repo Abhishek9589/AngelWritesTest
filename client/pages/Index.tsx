@@ -6,6 +6,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 const RichEditor = lazy(() => import("@/components/RichEditor"));
 import { Badge } from "@/components/ui/badge";
+import { LoadingScreen } from "@/components/ui/loading";
+import { POET_SARCASTIC_MESSAGES } from "@/lib/messages";
 import {
   Select,
   SelectContent,
@@ -92,6 +94,7 @@ export default function Index() {
   const [writingPoem, setWritingPoem] = useState<Poem | null>(null);
   const [writingContent, setWritingContent] = useState("");
   const [hasImported, setHasImported] = useState(false);
+  const [importing, setImporting] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -245,60 +248,65 @@ export default function Index() {
 
   const importRef = useRef<HTMLInputElement>(null);
   const onImportFiles = async (files: FileList) => {
-    const arr = Array.from(files);
-    let jsonCount = 0;
-    const created: Poem[] = [];
-    const importedMap = new Map<string, Poem>();
-    for (const file of arr) {
-      const isJSON = file.type === "application/json" || /\.json$/i.test(file.name);
-      const isDOCX = /\.docx$/i.test(file.name);
-      if (isJSON) {
-        try {
-          const text = await file.text();
-          const obj = JSON.parse(text);
-          const imported: Poem[] = Array.isArray(obj) ? obj : Array.isArray(obj.poems) ? obj.poems : [];
-          imported.forEach((p) => importedMap.set(p.id, p));
-          jsonCount += imported.length;
-        } catch {
-          toast.error(`Failed to import JSON file: ${file.name}`);
-        }
-      } else if (isDOCX) {
-        try {
-          const arrayBuffer = await file.arrayBuffer();
-          const { docxArrayBufferToHTML } = await import("@/lib/docx");
-          const html = await docxArrayBufferToHTML(arrayBuffer);
-          const { sanitizeHtml } = await import("@/lib/html");
-          const title = file.name.replace(/\.docx$/i, "");
-          const poem = createPoem({
-            title,
-            content: sanitizeHtml(html),
-            date: format(new Date(), "yyyy-MM-dd"),
-            tags: [],
-          });
-          created.push(poem);
-        } catch {
-          toast.error(`Failed to import DOCX file: ${file.name}`);
+    setImporting(true);
+    try {
+      const arr = Array.from(files);
+      let jsonCount = 0;
+      const created: Poem[] = [];
+      const importedMap = new Map<string, Poem>();
+      for (const file of arr) {
+        const isJSON = file.type === "application/json" || /\.json$/i.test(file.name);
+        const isDOCX = /\.docx$/i.test(file.name);
+        if (isJSON) {
+          try {
+            const text = await file.text();
+            const obj = JSON.parse(text);
+            const imported: Poem[] = Array.isArray(obj) ? obj : Array.isArray(obj.poems) ? obj.poems : [];
+            imported.forEach((p) => importedMap.set(p.id, p));
+            jsonCount += imported.length;
+          } catch {
+            toast.error(`Failed to import JSON file: ${file.name}`);
+          }
+        } else if (isDOCX) {
+          try {
+            const arrayBuffer = await file.arrayBuffer();
+            const { docxArrayBufferToHTML } = await import("@/lib/docx");
+            const html = await docxArrayBufferToHTML(arrayBuffer);
+            const { sanitizeHtml } = await import("@/lib/html");
+            const title = file.name.replace(/\.docx$/i, "");
+            const poem = createPoem({
+              title,
+              content: sanitizeHtml(html),
+              date: format(new Date(), "yyyy-MM-dd"),
+              tags: [],
+            });
+            created.push(poem);
+          } catch {
+            toast.error(`Failed to import DOCX file: ${file.name}`);
+          }
         }
       }
+      if (jsonCount === 0 && created.length === 0) {
+        toast.error("No supported files imported. Please select .json or .docx files.");
+        return;
+      }
+      setPoems((prev) => {
+        const map = new Map<string, Poem>(prev.map((p) => [p.id, p]));
+        importedMap.forEach((p) => map.set(p.id, p));
+        const next = Array.from(map.values());
+        const combined = created.length ? [...created, ...next] : next;
+        return sortPoems(combined, sort);
+      });
+      setHasImported(true);
+      setOpenForm(false);
+      setEditing(null);
+      const parts: string[] = [];
+      if (jsonCount) parts.push(`JSON: ${jsonCount}`);
+      if (created.length) parts.push(`DOCX: ${created.length}`);
+      toast.success(`Imported ${parts.join(" and ")}`);
+    } finally {
+      setImporting(false);
     }
-    if (jsonCount === 0 && created.length === 0) {
-      toast.error("No supported files imported. Please select .json or .docx files.");
-      return;
-    }
-    setPoems((prev) => {
-      const map = new Map<string, Poem>(prev.map((p) => [p.id, p]));
-      importedMap.forEach((p) => map.set(p.id, p));
-      const next = Array.from(map.values());
-      const combined = created.length ? [...created, ...next] : next;
-      return sortPoems(combined, sort);
-    });
-    setHasImported(true);
-    setOpenForm(false);
-    setEditing(null);
-    const parts: string[] = [];
-    if (jsonCount) parts.push(`JSON: ${jsonCount}`);
-    if (created.length) parts.push(`DOCX: ${created.length}`);
-    toast.success(`Imported ${parts.join(" and ")}`);
   };
 
   return (
@@ -484,6 +492,12 @@ export default function Index() {
           </DialogContent>
         </Dialog>
 
+        {importing && (
+          <div className="fixed inset-0 z-[60] bg-background/95 backdrop-blur">
+            <LoadingScreen messages={POET_SARCASTIC_MESSAGES} />
+          </div>
+        )}
+
         {writeOpen && writingPoem && (
           <div className="fixed inset-0 z-[60] bg-background/95 backdrop-blur overflow-y-auto" role="dialog" aria-modal="true" aria-label={`Edit poem: ${writingPoem.title}`}>
             <div className="container mx-auto flex h-full min-h-0 flex-col">
@@ -495,7 +509,7 @@ export default function Index() {
                 </div>
               </div>
               <div className="flex-1 pb-[3px]">
-                <Suspense fallback={<div className="glass rounded-3xl p-6 text-sm">Loading editor…</div>}>
+                <Suspense fallback={<LoadingScreen fullscreen={false} messages={POET_SARCASTIC_MESSAGES} />}>
                   <RichEditor value={writingContent} onChange={setWritingContent} placeholder="Start writing your poem..." />
                 </Suspense>
               </div>
