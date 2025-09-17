@@ -210,7 +210,7 @@ export default function BookQuill() {
               <div className="text-sm text-muted-foreground">No chapter selected.</div>
             </div>
           ) : (
-            <div className="h-full rounded-2xl overflow-hidden">
+            <div className="h-full rounded-2xl">
               <Suspense fallback={<LoadingScreen fullscreen={false} messages={POET_SARCASTIC_MESSAGES} />}>
                 <RichEditor value={value} onChange={(v) => setValue(v)} placeholder="Begin your chapter..." />
               </Suspense>

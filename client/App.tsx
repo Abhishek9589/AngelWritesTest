@@ -62,6 +62,7 @@ function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const isBookMode = useMemo(() => location.pathname.startsWith("/book"), [location.pathname]);
+  const isEditMode = useMemo(() => location.pathname.startsWith("/book/quill"), [location.pathname]);
 
   useEffect(() => {
     document.title = `${title} - Poetry Manager`;
@@ -82,8 +83,15 @@ function Layout() {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen pt-24">
-      <header className="fixed top-4 left-1/2 z-40 w-[min(1120px,95%)] -translate-x-1/2 rounded-2xl glass">
+    <div className={cn("min-h-screen", isEditMode ? "pt-6" : "pt-24") }>
+      <header
+        className={cn(
+          "z-40 w-[min(1120px,95%)] rounded-2xl glass",
+          isEditMode
+            ? "relative mx-auto"
+            : "fixed top-4 left-1/2 -translate-x-1/2"
+        )}
+      >
         <div className="flex h-14 items-center justify-between px-4">
           <button
             onClick={() => { if (isBookMode) navigate("/"); else navigate("/book"); }}
