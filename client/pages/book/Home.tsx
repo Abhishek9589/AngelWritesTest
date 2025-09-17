@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { BookOpen, Library, NotebookPen, Plus, Clock, FileText, Hash } from "lucide-react";
+import { Library, NotebookPen, Plus, FileText, Upload } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Book,
@@ -10,29 +10,19 @@ import {
   getBookWordCount,
   getLastOpenedBookId,
   getRecentBookIds,
-  getWritingDays,
+
   loadBooks,
   saveBooks,
   setLastOpenedBookId,
 } from "@/lib/books";
 import { formatDistanceToNow } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { docxArrayBufferToHTML } from "@/lib/docx";
+import { importBooksFromJSON } from "@/lib/books";
 
-function computeStreak(days: string[]): number {
-  const set = new Set(days);
-  const today = new Date();
-  let streak = 0;
-  for (let i = 0; i < 3650; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    if (set.has(key)) streak++;
-    else break;
-  }
-  return streak;
-}
 
 export default function BookHome() {
   const navigate = useNavigate();
@@ -42,13 +32,6 @@ export default function BookHome() {
     saveBooks(books);
   }, [books]);
 
-  const stats = useMemo(() => {
-    const total = books.length;
-    const chapters = books.reduce((sum, b) => sum + (b.chapters?.length || 0), 0);
-    const totalWords = books.reduce((sum, b) => sum + getBookWordCount(b), 0);
-    const streak = computeStreak(getWritingDays());
-    return { total, chapters, totalWords, streak };
-  }, [books]);
 
   const lastId = getLastOpenedBookId();
   const last = books.find((b) => b.id === lastId) || null;
@@ -67,6 +50,7 @@ export default function BookHome() {
   const genreRef = useRef<HTMLInputElement>(null);
   const tagsRef = useRef<HTMLInputElement>(null);
   const [statusDraft, setStatusDraft] = useState<BookStatus>("draft");
+  const importRef = useRef<HTMLInputElement>(null);
 
   const onCreate = () => {
     const title = (titleRef.current?.value || "Untitled Book").toString();
@@ -86,6 +70,44 @@ export default function BookHome() {
     navigate("/book/quill");
   };
 
+  async function onImportFiles(files: FileList) {
+    const arr = Array.from(files);
+    let base = books;
+    let jsonCount = 0;
+    const created: Book[] = [];
+    for (const file of arr) {
+      const name = file.name || "";
+      const isJSON = file.type === "application/json" || /\.json$/i.test(name);
+      const isDOCX = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || /\.docx$/i.test(name);
+      try {
+        if (isJSON) {
+          const text = await file.text();
+          try {
+            const obj = JSON.parse(text);
+            const imported: Book[] = Array.isArray(obj) ? obj : Array.isArray(obj.books) ? obj.books : [];
+            jsonCount += imported.length;
+          } catch {}
+          base = importBooksFromJSON(base, text);
+        } else if (isDOCX) {
+          const ab = await file.arrayBuffer();
+          const html = await docxArrayBufferToHTML(ab);
+          const title = name.replace(/\.docx$/i, "");
+          const b = createBook({ title, content: html });
+          created.push(b);
+        }
+      } catch {}
+    }
+    if (created.length || jsonCount) {
+      const next = created.length ? [...created, ...base] : base;
+      setBooks(next);
+      saveBooks(next);
+      toast.success(`${jsonCount ? `Imported ${jsonCount} from JSON. ` : ""}${created.length ? `Created ${created.length} book${created.length === 1 ? "" : "s"} from DOCX.` : ""}`.trim());
+    } else {
+      toast.info("No supported files were imported.");
+    }
+    if (importRef.current) importRef.current.value = "";
+  }
+
   return (
     <main className="container py-10 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
       <section className="relative overflow-hidden rounded-3xl p-8 md:p-12 mb-6 glass">
@@ -94,6 +116,7 @@ export default function BookHome() {
           <p className="mt-2 md:mt-3 max-w-2xl text-sm md:text-base text-muted-foreground">Start a new book, continue where you left off, or open your library. Your progress is saved locally and can be exported anytime.</p>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <Button className="gap-2" onClick={() => setOpenNew(true)}><Plus className="h-4 w-4" /> Start New Book</Button>
+            <Button variant="outline" className="gap-2" onClick={() => importRef.current?.click()}><Upload className="h-4 w-4" /> Import</Button>
             <Link to="/book/library"><Button variant="outline" className="gap-2"><Library className="h-4 w-4" /> Open Library</Button></Link>
             <Button variant="outline" className="gap-2" disabled={!last} onClick={() => navigate("/book/quill")}>{last ? <><NotebookPen className="h-4 w-4" /> Resume: {last.title}</> : <><NotebookPen className="h-4 w-4" /> Resume Last Book</>}</Button>
           </div>
@@ -127,12 +150,8 @@ export default function BookHome() {
         </section>
       )}
 
-      <section className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card><CardContent className="p-5"><div className="flex items-center gap-3"><BookOpen className="h-5 w-5" /><div><div className="text-sm text-muted-foreground">Total Books</div><div className="text-2xl font-semibold">{stats.total}</div></div></div></CardContent></Card>
-        <Card><CardContent className="p-5"><div className="flex items-center gap-3"><Hash className="h-5 w-5" /><div><div className="text-sm text-muted-foreground">Chapters Written</div><div className="text-2xl font-semibold">{stats.chapters}</div></div></div></CardContent></Card>
-        <Card><CardContent className="p-5"><div className="flex items-center gap-3"><FileText className="h-5 w-5" /><div><div className="text-sm text-muted-foreground">Total Words</div><div className="text-2xl font-semibold">{stats.totalWords}</div></div></div></CardContent></Card>
-        <Card><CardContent className="p-5"><div className="flex items-center gap-3"><Clock className="h-5 w-5" /><div><div className="text-sm text-muted-foreground">Streak</div><div className="text-2xl font-semibold">{stats.streak} days</div></div></div></CardContent></Card>
-      </section>
+
+      <input ref={importRef} type="file" multiple accept=".json,application/json,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" onChange={(e) => { if (e.target.files) onImportFiles(e.target.files); }} />
 
       <Dialog open={openNew} onOpenChange={setOpenNew}>
         <DialogContent>

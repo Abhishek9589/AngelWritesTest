@@ -7,11 +7,10 @@ import {
   deleteBook,
   duplicateBook,
   exportBookToDOCX,
-  exportBookToEPUB,
-  exportBookToPDF,
   exportBooksJSON,
   getBookWordCount,
   getLastOpenedBookId,
+  getWritingDays,
   loadBooks,
   saveBooks,
   setLastOpenedBookId,
@@ -25,7 +24,21 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDistanceToNow } from "date-fns";
-import { BookOpen, Filter, Grid3X3, Image, ListFilter, MoreHorizontal, NotebookPen, Plus, Trash2, Copy, FileDown, FileJson, FileText } from "lucide-react";
+import { BookOpen, MoreHorizontal, NotebookPen, Plus, Trash2, Copy, FileDown, FileJson, FileText, Hash, Clock } from "lucide-react";
+
+function computeStreak(days: string[]): number {
+  const set = new Set(days);
+  const today = new Date();
+  let streak = 0;
+  for (let i = 0; i < 3650; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (set.has(key)) streak++;
+    else break;
+  }
+  return streak;
+}
 
 export default function BookLibrary() {
   const navigate = useNavigate();
@@ -40,7 +53,6 @@ export default function BookLibrary() {
   const [statusDraft, setStatusDraft] = useState<BookStatus>("draft");
 
   // UI state
-  const [view, setView] = useState<"grid" | "shelf">(() => (localStorage.getItem("books:view") as any) || "grid");
   const [sortBy, setSortBy] = useState<"lastEdited" | "title" | "wordCount" | "status">(() => (localStorage.getItem("books:sort") as any) || "lastEdited");
   const [filterStatus, setFilterStatus] = useState<"all" | "inprogress" | "completed">(() => (localStorage.getItem("books:filter:status") as any) || "all");
   const [filterGenre, setFilterGenre] = useState<string>(() => localStorage.getItem("books:filter:genre") || "all");
@@ -48,7 +60,6 @@ export default function BookLibrary() {
 
   useEffect(() => { saveBooks(books); }, [books]);
 
-  useEffect(() => { localStorage.setItem("books:view", view); }, [view]);
   useEffect(() => { localStorage.setItem("books:sort", sortBy); }, [sortBy]);
   useEffect(() => { localStorage.setItem("books:filter:status", filterStatus); }, [filterStatus]);
   useEffect(() => { localStorage.setItem("books:filter:genre", filterGenre); }, [filterGenre]);
@@ -66,6 +77,14 @@ export default function BookLibrary() {
   };
 
   const lastId = getLastOpenedBookId();
+
+  const stats = useMemo(() => {
+    const total = books.length;
+    const chapters = books.reduce((sum, b) => sum + (b.chapters?.length || 0), 0);
+    const totalWords = books.reduce((sum, b) => sum + getBookWordCount(b), 0);
+    const streak = computeStreak(getWritingDays());
+    return { total, chapters, totalWords, streak };
+  }, [books]);
 
   const genres = useMemo(() => {
     const set = new Set<string>();
@@ -104,15 +123,18 @@ export default function BookLibrary() {
       <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Library</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-md border bg-background p-1">
-            <Button variant={view === "grid" ? "default" : "ghost"} onClick={() => setView("grid")} aria-label="Grid view" className="h-8 w-8 p-1"><Grid3X3 className="h-4 w-4" /></Button>
-            <Button variant={view === "shelf" ? "default" : "ghost"} onClick={() => setView("shelf")} aria-label="Shelf view" className="h-8 w-8 p-1"><BookOpen className="h-4 w-4" /></Button>
-          </div>
           <Button className="gap-2" onClick={onCreate}><Plus className="h-4 w-4" /> New Book</Button>
         </div>
       </div>
 
-      <div className="glass-soft p-3 rounded-xl mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+      <section className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+        <Card><CardContent className="p-5"><div className="flex items-center gap-3"><BookOpen className="h-5 w-5" /><div><div className="text-sm text-muted-foreground">Total Books</div><div className="text-2xl font-semibold">{stats.total}</div></div></div></CardContent></Card>
+        <Card><CardContent className="p-5"><div className="flex items-center gap-3"><Hash className="h-5 w-5" /><div><div className="text-sm text-muted-foreground">Chapters Written</div><div className="text-2xl font-semibold">{stats.chapters}</div></div></div></CardContent></Card>
+        <Card><CardContent className="p-5"><div className="flex items-center gap-3"><FileText className="h-5 w-5" /><div><div className="text-sm text-muted-foreground">Total Words</div><div className="text-2xl font-semibold">{stats.totalWords}</div></div></div></CardContent></Card>
+        <Card><CardContent className="p-5"><div className="flex items-center gap-3"><Clock className="h-5 w-5" /><div><div className="text-sm text-muted-foreground">Streak</div><div className="text-2xl font-semibold">{stats.streak} days</div></div></div></CardContent></Card>
+      </section>
+
+      <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
         <div>
           <label className="text-xs text-muted-foreground">Sort by</label>
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
@@ -155,13 +177,13 @@ export default function BookLibrary() {
       {filteredSorted.length === 0 ? (
         <div className="text-center text-sm text-muted-foreground">No books match your filters.</div>
       ) : (
-        <section className={view === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"}>
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredSorted.map((b) => (
             <Card key={b.id} className="group relative overflow-hidden">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3 justify-between">
                   <div className="flex items-start gap-3">
-                    <img src={b.cover || "/placeholder.svg"} alt="Cover" className={view === "shelf" ? "h-32 w-24 object-cover rounded-md border" : "h-16 w-12 object-cover rounded-md border"} />
+                    <img src={b.cover || "/placeholder.svg"} alt="Cover" className="h-16 w-12 object-cover rounded-md border" />
                     <div>
                       <div className="text-base font-semibold leading-tight line-clamp-1">{b.title}</div>
                       <div className="text-[11px] text-muted-foreground">Last edited {formatDistanceToNow(new Date(b.lastEdited), { addSuffix: true })}</div>
@@ -180,8 +202,6 @@ export default function BookLibrary() {
                       <DropdownMenuItem onClick={() => { setLastOpenedBookId(b.id); navigate("/book/quill"); }}><NotebookPen className="h-4 w-4 mr-2" /> Open</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setEditing(b)}>Edit Metadata</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => exportBookToDOCX(b, `${b.title}.docx`)}><FileDown className="h-4 w-4 mr-2" /> Export (DOCX)</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => exportBookToEPUB(b, `${b.title}.epub`)}><FileText className="h-4 w-4 mr-2" /> Export (EPUB)</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => exportBookToPDF(b)}><FileText className="h-4 w-4 mr-2" /> Export (PDF)</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => exportBooksJSON([b], `${b.title}.json`)}><FileJson className="h-4 w-4 mr-2" /> Export (JSON)</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setBooks((prev) => duplicateBook(prev, b.id))}><Copy className="h-4 w-4 mr-2" /> Duplicate</DropdownMenuItem>
                       <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(b.id)}><Trash2 className="h-4 w-4 mr-2" /> Delete</DropdownMenuItem>

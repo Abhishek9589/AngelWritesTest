@@ -7,8 +7,6 @@ import {
   BookStatus,
   Chapter,
   exportBookToDOCX,
-  exportBookToEPUB,
-  exportBookToPDF,
   exportBooksJSON,
   getLastOpenedBookId,
   loadBooks,
@@ -17,7 +15,7 @@ import {
   updateBook,
 } from "@/lib/books";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, ArrowUp, ArrowDown, Edit2, MoreHorizontal, FileDown, FileText, FileJson } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, Edit2, MoreHorizontal, FileDown, FileJson } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -175,8 +173,6 @@ export default function BookQuill() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => exportBookToDOCX(current, `${current.title}.docx`)}><FileDown className="h-4 w-4 mr-2" /> Export DOCX</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportBookToEPUB(current, `${current.title}.epub`)}><FileText className="h-4 w-4 mr-2" /> Export EPUB</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportBookToPDF(current)}><FileText className="h-4 w-4 mr-2" /> Export PDF</DropdownMenuItem>
               <DropdownMenuItem onClick={() => exportBooksJSON([current], `${current.title}.json`)}><FileJson className="h-4 w-4 mr-2" /> Export JSON</DropdownMenuItem>
               <DropdownMenuItem onClick={() => { setMetaStatus(current.status || "draft"); setMetaOpen(true); }}>Edit Metadata</DropdownMenuItem>
             </DropdownMenuContent>
