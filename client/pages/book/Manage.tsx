@@ -2,22 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { docxArrayBufferToHTML } from "@/lib/docx";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Book,
-  createBook,
   exportBookToDOCX,
   exportBooksJSON,
   getBookWordCount,
   loadBooks,
   saveBooks,
   createDOCXBlobForBook,
-  importBooksFromJSON,
 } from "@/lib/books";
 import JSZip from "jszip";
-import { FileDown, FileJson, Trash2, Upload } from "lucide-react";
+import { FileDown, FileJson, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 function sanitizeFilename(name: string, ext: string) {
@@ -54,7 +51,6 @@ export default function BookManage() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openDelete, setOpenDelete] = useState(false);
-  const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { saveBooks(books); }, [books]);
 
@@ -132,46 +128,12 @@ export default function BookManage() {
           <Button variant="outline" onClick={toggleAll} className="shrink-0">{allChecked ? "Clear" : "Select All"}</Button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => importRef.current?.click()}><Upload className="h-4 w-4" /> Import</Button>
           <Button variant="outline" onClick={exportSelectedJSON} className="gap-2 border-2 border-primary"><FileJson className="h-4 w-4" /> JSON</Button>
           <Button variant="outline" onClick={exportSelectedDOCXZip} className="gap-2 border-2 border-primary"><FileDown className="h-4 w-4" /> DOCX</Button>
           <Button variant="destructive" onClick={deleteSelected}><Trash2 className="h-4 w-4" aria-label="Delete" /></Button>
         </div>
       </div>
 
-      <input
-        ref={importRef}
-        type="file"
-        multiple
-        accept=".json,application/json,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        className="hidden"
-        onChange={async (e) => {
-          const files = e.currentTarget.files; if (!files) return;
-          let base = books;
-          let jsonCount = 0; const created: Book[] = [];
-          for (const file of Array.from(files)) {
-            const name = file.name || "";
-            const isJSON = file.type === "application/json" || /\.json$/i.test(name);
-            const isDOCX = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || /\.docx$/i.test(name);
-            try {
-              if (isJSON) {
-                const text = await file.text();
-                try { const obj = JSON.parse(text); const imported: Book[] = Array.isArray(obj) ? obj : Array.isArray((obj as any).books) ? (obj as any).books : []; jsonCount += imported.length; } catch {}
-                base = importBooksFromJSON(base, text);
-              } else if (isDOCX) {
-                const ab = await file.arrayBuffer();
-                const html = await docxArrayBufferToHTML(ab);
-                const title = name.replace(/\.docx$/i, "");
-                created.push(createBook({ title, content: html }));
-              }
-            } catch {}
-          }
-          const next = created.length ? [...created, ...base] : base;
-          setBooks(next); saveBooks(next);
-          toast.success(`${jsonCount ? `Imported ${jsonCount} from JSON. ` : ""}${created.length ? `Created ${created.length} book${created.length === 1 ? "" : "s"} from DOCX.` : ""}`.trim());
-          e.currentTarget.value = "";
-        }}
-      />
 
       <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((b) => (

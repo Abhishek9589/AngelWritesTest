@@ -47,15 +47,18 @@ export default function BookHome() {
   const titleRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
+  const coverFileRef = useRef<HTMLInputElement>(null);
   const genreRef = useRef<HTMLInputElement>(null);
   const tagsRef = useRef<HTMLInputElement>(null);
   const [statusDraft, setStatusDraft] = useState<BookStatus>("draft");
   const importRef = useRef<HTMLInputElement>(null);
+  const [coverDataUrl, setCoverDataUrl] = useState<string | null>(null);
+  const [coverUrlInput, setCoverUrlInput] = useState<string>("");
 
   const onCreate = () => {
     const title = (titleRef.current?.value || "Untitled Book").toString();
     const description = (descRef.current?.value || "").toString();
-    const cover = (coverRef.current?.value || "").toString() || null;
+    const cover = (coverDataUrl || coverUrlInput || null);
     const genre = (genreRef.current?.value || "").toString() || null;
     const tags = (tagsRef.current?.value || "").split(",").map((t) => t.trim()).filter(Boolean);
     const status = statusDraft || "draft";
@@ -162,7 +165,27 @@ export default function BookHome() {
           <div className="grid gap-3">
             <Input ref={titleRef} placeholder="Title" />
             <Input ref={descRef} placeholder="Short description" />
-            <Input ref={coverRef} placeholder="Cover image URL" />
+            <div className="grid gap-2">
+              <label className="text-xs text-muted-foreground">Cover</label>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" className="gap-2" onClick={() => coverFileRef.current?.click()}><Upload className="h-4 w-4" /> From device</Button>
+                <Input ref={coverRef} placeholder="Cover image URL" value={coverUrlInput} onChange={(e) => setCoverUrlInput(e.target.value)} />
+              </div>
+              {(coverDataUrl || coverUrlInput) && (
+                <div className="flex items-center gap-3">
+                  <img src={coverDataUrl || coverUrlInput} alt="Cover preview" className="h-20 w-16 object-cover rounded-md border" />
+                  <Button type="button" variant="ghost" onClick={() => { setCoverDataUrl(null); setCoverUrlInput(""); }}>Clear</Button>
+                </div>
+              )}
+              <input ref={coverFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
+                const file = e.currentTarget.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => setCoverDataUrl(reader.result as string);
+                reader.readAsDataURL(file);
+                if (coverFileRef.current) coverFileRef.current.value = "";
+              }} />
+            </div>
             <Input ref={genreRef} placeholder="Genre" />
             <Input ref={tagsRef} placeholder="Tags (comma-separated)" />
             <div>
