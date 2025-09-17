@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { PRESETS, PresetKey, ThemeToggle } from "@/components/ThemeToggle";
+import { PRESETS, PresetKey, ThemeToggle, BOOK_PRESETS, POEM_PRESETS } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useLocation } from "react-router-dom";
 
 function getInitialPreset(): PresetKey {
   const stored = localStorage.getItem("themePreset") as PresetKey | null;
@@ -25,7 +26,10 @@ export default function Themes() {
     setActive(current);
   }, []);
 
-  const items = useMemo(() => PRESETS, []);
+  const location = useLocation();
+  const isBookMode = location.pathname.startsWith("/book");
+  const poemItems = useMemo(() => POEM_PRESETS, []);
+  const bookItems = useMemo(() => BOOK_PRESETS, []);
   const [hovering, setHovering] = useState<PresetKey | null>(null);
   const applyPreview = (key: PresetKey | null) => {
     if (!key) document.documentElement.dataset.theme = active;
@@ -42,8 +46,13 @@ export default function Themes() {
         <ThemeToggle />
       </section>
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {items.map((p) => (
+      {(isBookMode ? ["Book Mode Themes", "Poem Mode Themes"] : ["Poem Mode Themes", "Book Mode Themes"]).map((header) => {
+        const items = header === "Book Mode Themes" ? bookItems : poemItems;
+        return (
+          <div key={header} className="mb-8">
+            <h2 className="text-xl font-semibold mb-3">{header}</h2>
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {items.map((p) => (
           <Card
             key={p.key}
             className={cn("overflow-hidden group bg-transparent", active === p.key && "ring-2 ring-ring")}
@@ -77,8 +86,11 @@ export default function Themes() {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </section>
+              ))}
+            </section>
+          </div>
+        );
+      })}
     </main>
   );
 }

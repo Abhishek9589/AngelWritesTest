@@ -9,13 +9,23 @@ function getSystemPref(): "light" | "dark" {
     : "light";
 }
 
-export const PRESETS = [
+export const POEM_PRESETS = [
   { key: "pastel", label: "Pastel Airy", swatch: ["#a2d2ff", "#cdb4db", "#b9fbc0"] },
   { key: "sunset", label: "Sunset Glow", swatch: ["#ffd6a5", "#ffb5a7", "#ff8a5b"] },
   { key: "ocean", label: "Ocean Breeze", swatch: ["#dbeafe", "#bbf7d0", "#22d3ee"] },
   { key: "aurora", label: "Aurora Nights", swatch: ["#ede9fe", "#a78bfa", "#22d3ee"] },
   { key: "strawberry", label: "Strawberry Milk", swatch: ["#ffe5ec", "#ffcad4", "#ff6b8a"] },
 ] as const;
+
+export const BOOK_PRESETS = [
+  { key: "minimal-zen", label: "Minimal Zen", swatch: ["#f7f7f5", "#dfe7e1", "#7fbf8e"] },
+  { key: "forest-haven", label: "Forest Haven", swatch: ["#e6f0e8", "#9bbf98", "#7a5d3b"] },
+  { key: "desert-dusk", label: "Desert Dusk", swatch: ["#f2e9dc", "#d8a48f", "#b5653e"] },
+  { key: "midnight-quartz", label: "Midnight Quartz", swatch: ["#e6e7ec", "#a78bfa", "#64748b"] },
+  { key: "aurora-flow", label: "Aurora Flow", swatch: ["#dbeafe", "#f5d0fe", "#fbcfe8"] },
+] as const;
+
+export const PRESETS = [...POEM_PRESETS, ...BOOK_PRESETS] as const;
 
 export type PresetKey = typeof PRESETS[number]["key"];
 

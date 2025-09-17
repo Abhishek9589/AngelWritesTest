@@ -370,6 +370,336 @@
     --grad-2: 350 100% 70%;
     --grad-3: 0 90% 55%;
   }
+
+  /* Book Preset: Minimal Zen */
+  :root[data-theme="minimal-zen"] {
+    --background: 120 10% 98%; /* soft white */
+    --foreground: 140 8% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 140 8% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 140 8% 20%;
+    --primary: 140 35% 55%; /* muted jade */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 140 15% 90%;
+    --secondary-foreground: 140 8% 20%;
+    --muted: 120 10% 94%;
+    --muted-foreground: 140 8% 35%;
+    --accent: 140 25% 70%;
+    --accent-foreground: 140 8% 15%;
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 120 10% 90%;
+    --input: 120 10% 92%;
+    --ring: 140 35% 55%;
+    --sidebar-background: 120 10% 98%;
+    --sidebar-foreground: 140 8% 20%;
+    --sidebar-primary: 140 35% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 140 25% 70%;
+    --sidebar-accent-foreground: 140 8% 20%;
+    --sidebar-border: 120 10% 90%;
+    --sidebar-ring: 140 35% 55%;
+    --grad-1: 140 35% 55%;
+    --grad-2: 140 25% 70%;
+    --grad-3: 120 10% 90%;
+  }
+  .dark[data-theme="minimal-zen"] {
+    --background: 210 18% 12%; /* charcoal */
+    --foreground: 140 15% 90%;
+    --card: 210 16% 14%;
+    --card-foreground: 140 15% 90%;
+    --popover: 210 16% 14%;
+    --popover-foreground: 140 15% 90%;
+    --primary: 150 40% 45%; /* jade glow */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 12% 18%;
+    --secondary-foreground: 140 15% 90%;
+    --muted: 210 12% 20%;
+    --muted-foreground: 140 12% 70%;
+    --accent: 150 35% 35%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 12% 22%;
+    --input: 210 12% 22%;
+    --ring: 150 40% 45%;
+    --sidebar-background: 210 18% 10%;
+    --sidebar-foreground: 140 15% 90%;
+    --sidebar-primary: 150 40% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 35% 35%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 210 12% 22%;
+    --sidebar-ring: 150 40% 45%;
+    --grad-1: 150 40% 45%;
+    --grad-2: 140 25% 60%;
+    --grad-3: 210 18% 12%;
+  }
+
+  /* Book Preset: Forest Haven */
+  :root[data-theme="forest-haven"] {
+    --background: 140 40% 96%;
+    --foreground: 140 20% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 140 20% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 140 20% 20%;
+    --primary: 140 35% 40%; /* forest green */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 45% 80%; /* warm browns */
+    --secondary-foreground: 30 30% 20%;
+    --muted: 140 25% 88%;
+    --muted-foreground: 140 15% 35%;
+    --accent: 30 50% 70%;
+    --accent-foreground: 30 30% 20%;
+    --destructive: 8 70% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 140 20% 85%;
+    --input: 140 20% 88%;
+    --ring: 140 35% 40%;
+    --sidebar-background: 140 40% 96%;
+    --sidebar-foreground: 140 20% 20%;
+    --sidebar-primary: 140 35% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 30 50% 70%;
+    --sidebar-accent-foreground: 30 30% 20%;
+    --sidebar-border: 140 20% 85%;
+    --sidebar-ring: 140 35% 40%;
+    --grad-1: 141 37% 46%;
+    --grad-2: 30 50% 70%;
+    --grad-3: 140 25% 88%;
+  }
+  .dark[data-theme="forest-haven"] {
+    --background: 169 40% 10%; /* midnight green */
+    --foreground: 140 25% 90%;
+    --card: 169 35% 12%;
+    --card-foreground: 140 25% 90%;
+    --popover: 169 35% 12%;
+    --popover-foreground: 140 25% 90%;
+    --primary: 140 35% 35%; /* moss */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 45% 25%;
+    --secondary-foreground: 30 30% 90%;
+    --muted: 169 20% 18%;
+    --muted-foreground: 140 20% 75%;
+    --accent: 30 60% 35%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 8 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 169 20% 22%;
+    --input: 169 20% 22%;
+    --ring: 140 35% 35%;
+    --sidebar-background: 169 40% 8%;
+    --sidebar-foreground: 140 25% 90%;
+    --sidebar-primary: 140 35% 35%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 30 60% 35%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 169 20% 22%;
+    --sidebar-ring: 140 35% 35%;
+    --grad-1: 169 40% 18%;
+    --grad-2: 140 35% 35%;
+    --grad-3: 30 45% 25%;
+  }
+
+  /* Book Preset: Desert Dusk */
+  :root[data-theme="desert-dusk"] {
+    --background: 35 40% 95%; /* sandy */
+    --foreground: 24 30% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 24 30% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 30% 20%;
+    --primary: 18 60% 60%; /* terracotta */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 45% 80%;
+    --secondary-foreground: 24 30% 20%;
+    --muted: 35 35% 88%;
+    --muted-foreground: 24 25% 40%;
+    --accent: 18 55% 65%;
+    --accent-foreground: 24 30% 20%;
+    --destructive: 8 80% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 35 30% 85%;
+    --input: 35 30% 88%;
+    --ring: 18 60% 60%;
+    --sidebar-background: 35 40% 95%;
+    --sidebar-foreground: 24 30% 20%;
+    --sidebar-primary: 18 60% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 18 55% 65%;
+    --sidebar-accent-foreground: 24 30% 20%;
+    --sidebar-border: 35 30% 85%;
+    --sidebar-ring: 18 60% 60%;
+    --grad-1: 18 60% 60%;
+    --grad-2: 30 45% 80%;
+    --grad-3: 35 35% 88%;
+  }
+  .dark[data-theme="desert-dusk"] {
+    --background: 18 35% 12%; /* deep sienna */
+    --foreground: 35 40% 92%;
+    --card: 18 30% 14%;
+    --card-foreground: 35 40% 92%;
+    --popover: 18 30% 14%;
+    --popover-foreground: 35 40% 92%;
+    --primary: 30 90% 50%; /* amber highlights */
+    --primary-foreground: 0 0% 0%;
+    --secondary: 18 35% 22%;
+    --secondary-foreground: 35 40% 92%;
+    --muted: 18 20% 24%;
+    --muted-foreground: 35 30% 80%;
+    --accent: 30 75% 55%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 75% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 18 20% 26%;
+    --input: 18 20% 26%;
+    --ring: 30 90% 50%;
+    --sidebar-background: 18 35% 10%;
+    --sidebar-foreground: 35 40% 92%;
+    --sidebar-primary: 30 90% 50%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 30 75% 55%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 18 20% 26%;
+    --sidebar-ring: 30 90% 50%;
+    --grad-1: 30 90% 50%;
+    --grad-2: 18 35% 22%;
+    --grad-3: 18 35% 12%;
+  }
+
+  /* Book Preset: Midnight Quartz */
+  :root[data-theme="midnight-quartz"] {
+    --background: 220 20% 94%; /* slate grey */
+    --foreground: 240 15% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 15% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 15% 20%;
+    --primary: 266 72% 60%; /* violet */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 15% 85%;
+    --secondary-foreground: 240 15% 20%;
+    --muted: 220 15% 90%;
+    --muted-foreground: 240 10% 35%;
+    --accent: 271 91% 65%; /* amethyst */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 15% 85%;
+    --input: 220 15% 88%;
+    --ring: 271 91% 65%;
+    --sidebar-background: 220 20% 94%;
+    --sidebar-foreground: 240 15% 20%;
+    --sidebar-primary: 266 72% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 271 91% 65%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 15% 85%;
+    --sidebar-ring: 271 91% 65%;
+    --grad-1: 271 91% 65%;
+    --grad-2: 220 15% 70%;
+    --grad-3: 220 20% 94%;
+  }
+  .dark[data-theme="midnight-quartz"] {
+    --background: 240 8% 5%; /* black base */
+    --foreground: 271 60% 90%;
+    --card: 240 8% 6%;
+    --card-foreground: 271 60% 90%;
+    --popover: 240 8% 6%;
+    --popover-foreground: 271 60% 90%;
+    --primary: 271 91% 65%; /* amethyst glow */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 8% 10%;
+    --secondary-foreground: 271 60% 90%;
+    --muted: 240 6% 12%;
+    --muted-foreground: 271 40% 80%;
+    --accent: 266 72% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 75% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 8% 14%;
+    --input: 240 8% 14%;
+    --ring: 271 91% 65%;
+    --sidebar-background: 240 8% 4%;
+    --sidebar-foreground: 271 60% 90%;
+    --sidebar-primary: 271 91% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 266 72% 60%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 240 8% 14%;
+    --sidebar-ring: 271 91% 65%;
+    --grad-1: 271 91% 65%;
+    --grad-2: 266 72% 60%;
+    --grad-3: 240 8% 6%;
+  }
+
+  /* Book Preset: Aurora Flow */
+  :root[data-theme="aurora-flow"] {
+    --background: 210 94% 96%; /* pastel blue base */
+    --foreground: 240 15% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 15% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 15% 20%;
+    --primary: 271 91% 70%; /* lilac */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 330 81% 85%; /* pink */
+    --secondary-foreground: 240 15% 20%;
+    --muted: 199 89% 90%; /* blue */
+    --muted-foreground: 240 12% 35%;
+    --accent: 330 81% 75%;
+    --accent-foreground: 240 15% 20%;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 45% 88%;
+    --input: 210 45% 90%;
+    --ring: 271 91% 70%;
+    --sidebar-background: 210 94% 96%;
+    --sidebar-foreground: 240 15% 20%;
+    --sidebar-primary: 271 91% 70%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 330 81% 75%;
+    --sidebar-accent-foreground: 240 15% 20%;
+    --sidebar-border: 210 45% 88%;
+    --sidebar-ring: 271 91% 70%;
+    --grad-1: 199 89% 60%;
+    --grad-2: 330 81% 70%;
+    --grad-3: 271 91% 70%;
+  }
+  .dark[data-theme="aurora-flow"] {
+    --background: 244 45% 18%; /* deep indigo */
+    --foreground: 204 94% 95%;
+    --card: 244 35% 22%;
+    --card-foreground: 204 94% 95%;
+    --popover: 244 35% 22%;
+    --popover-foreground: 204 94% 95%;
+    --primary: 271 91% 65%; /* neon lilac */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 330 81% 60%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 244 25% 26%;
+    --muted-foreground: 204 30% 85%;
+    --accent: 199 89% 56%; /* neon blue */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 244 25% 28%;
+    --input: 244 25% 28%;
+    --ring: 271 91% 65%;
+    --sidebar-background: 244 45% 16%;
+    --sidebar-foreground: 204 94% 95%;
+    --sidebar-primary: 271 91% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 199 89% 56%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 244 25% 28%;
+    --sidebar-ring: 271 91% 65%;
+    --grad-1: 271 91% 65%;
+    --grad-2: 199 89% 56%;
+    --grad-3: 330 81% 60%;
+  }
 }
 
 @layer base {
