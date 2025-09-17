@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDistanceToNow } from "date-fns";
-import { BookOpen, MoreHorizontal, NotebookPen, Plus, Trash2, Copy, FileDown, FileJson, FileText, Hash, Clock } from "lucide-react";
+import { BookOpen, MoreHorizontal, NotebookPen, Plus, Trash2, Copy, FileDown, FileJson, FileText, Hash, Clock, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp10, CheckCircle, FileEdit, Tag, Heart, Rocket, Wand2, Search, ListFilter, Minus } from "lucide-react";
 
 function computeStreak(days: string[]): number {
   const set = new Set(days);
@@ -50,17 +50,28 @@ export default function BookLibrary() {
   const coverRef = useRef<HTMLInputElement>(null);
   const genreRef = useRef<HTMLInputElement>(null);
   const tagsRef = useRef<HTMLInputElement>(null);
-  const [statusDraft, setStatusDraft] = useState<BookStatus>("draft");
+  const [metaStatusLib, setMetaStatusLib] = useState<"draft" | "completed" | null>(null);
 
   // UI state
-  const [sortBy, setSortBy] = useState<"lastEdited" | "title" | "wordCount" | "status">(() => (localStorage.getItem("books:sort") as any) || "lastEdited");
-  const [filterStatus, setFilterStatus] = useState<"all" | "inprogress" | "completed">(() => (localStorage.getItem("books:filter:status") as any) || "all");
+  const [sort, setSort] = useState<"title_asc" | "title_desc" | "date_desc" | "date_asc" | "wc_desc" | "wc_asc">(() => {
+    const v = localStorage.getItem("books:sort") as any;
+    if (v === "lastEdited") return "date_desc";
+    if (v === "title") return "title_asc";
+    if (v === "wordCount") return "wc_desc";
+    if (v === "status") return "title_asc";
+    const allowed = new Set(["title_asc","title_desc","date_desc","date_asc","wc_desc","wc_asc"]);
+    return allowed.has(v) ? (v as any) : "date_desc";
+  });
+  const [filterStatus, setFilterStatus] = useState<"all" | "drafts" | "completed">(() => {
+    const v = localStorage.getItem("books:filter:status") as any;
+    return v === "inprogress" ? "all" : (v || "all");
+  });
   const [filterGenre, setFilterGenre] = useState<string>(() => localStorage.getItem("books:filter:genre") || "all");
   const [filterTags, setFilterTags] = useState<string>(() => localStorage.getItem("books:filter:tags") || "");
 
   useEffect(() => { saveBooks(books); }, [books]);
 
-  useEffect(() => { localStorage.setItem("books:sort", sortBy); }, [sortBy]);
+  useEffect(() => { localStorage.setItem("books:sort", sort); }, [sort]);
   useEffect(() => { localStorage.setItem("books:filter:status", filterStatus); }, [filterStatus]);
   useEffect(() => { localStorage.setItem("books:filter:genre", filterGenre); }, [filterGenre]);
   useEffect(() => { localStorage.setItem("books:filter:tags", filterTags); }, [filterTags]);
@@ -95,10 +106,7 @@ export default function BookLibrary() {
   const filteredSorted = useMemo(() => {
     const tags = filterTags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
     const byFilter = books.filter((b) => {
-      if (filterStatus === "inprogress") {
-        const wc = getBookWordCount(b);
-        if (b.completed || wc === 0) return false;
-      }
+      if (filterStatus === "drafts" && (b.status !== "draft")) return false;
       if (filterStatus === "completed" && !b.completed) return false;
       if (filterGenre !== "all" && filterGenre && b.genre !== filterGenre) return false;
       if (tags.length) {
@@ -109,14 +117,16 @@ export default function BookLibrary() {
     });
     const withWc = byFilter.map((b) => ({ b, wc: getBookWordCount(b) }));
     withWc.sort((a, c) => {
-      if (sortBy === "lastEdited") return new Date(c.b.lastEdited).getTime() - new Date(a.b.lastEdited).getTime();
-      if (sortBy === "title") return a.b.title.localeCompare(c.b.title);
-      if (sortBy === "wordCount") return c.wc - a.wc;
-      if (sortBy === "status") return (a.b.status || "draft").localeCompare(c.b.status || "draft");
+      if (sort === "date_desc") return new Date(c.b.lastEdited).getTime() - new Date(a.b.lastEdited).getTime();
+      if (sort === "date_asc") return new Date(a.b.lastEdited).getTime() - new Date(c.b.lastEdited).getTime();
+      if (sort === "title_asc") return a.b.title.localeCompare(c.b.title);
+      if (sort === "title_desc") return c.b.title.localeCompare(a.b.title);
+      if (sort === "wc_desc") return c.wc - a.wc;
+      if (sort === "wc_asc") return a.wc - c.wc;
       return 0;
     });
     return withWc.map((x) => x.b);
-  }, [books, filterStatus, filterGenre, filterTags, sortBy]);
+  }, [books, filterStatus, filterGenre, filterTags, sort]);
 
   return (
     <main className="container py-10 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
@@ -134,16 +144,16 @@ export default function BookLibrary() {
         <Card><CardContent className="p-5"><div className="flex items-center gap-3"><Clock className="h-5 w-5" /><div><div className="text-sm text-muted-foreground">Streak</div><div className="text-2xl font-semibold">{stats.streak} days</div></div></div></CardContent></Card>
       </section>
 
-      <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+      <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
         <div>
           <label className="text-xs text-muted-foreground">Sort by</label>
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+          <Select value={sort.startsWith("wc_") ? "date_desc" : sort} onValueChange={(v) => setSort(v as any)}>
             <SelectTrigger className="mt-1"><SelectValue placeholder="Sort by" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="lastEdited">Last Edited</SelectItem>
-              <SelectItem value="title">Title</SelectItem>
-              <SelectItem value="wordCount">Word Count</SelectItem>
-              <SelectItem value="status">Status</SelectItem>
+              <SelectItem value="title_asc"><span className="flex items-center gap-2"><ArrowDownAZ className="h-4 w-4" /> A to Z</span></SelectItem>
+              <SelectItem value="title_desc"><span className="flex items-center gap-2"><ArrowUpAZ className="h-4 w-4" /> Z to A</span></SelectItem>
+              <SelectItem value="date_desc"><span className="flex items-center gap-2"><ArrowDown01 className="h-4 w-4" /> Newest</span></SelectItem>
+              <SelectItem value="date_asc"><span className="flex items-center gap-2"><ArrowUp10 className="h-4 w-4" /> Oldest</span></SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -152,9 +162,9 @@ export default function BookLibrary() {
           <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
             <SelectTrigger className="mt-1"><SelectValue placeholder="All" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="inprogress">In-progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="all"><span className="flex items-center gap-2"><ListFilter className="h-4 w-4" /> All</span></SelectItem>
+              <SelectItem value="drafts"><span className="flex items-center gap-2"><FileEdit className="h-4 w-4" /> Drafts</span></SelectItem>
+              <SelectItem value="completed"><span className="flex items-center gap-2"><CheckCircle className="h-4 w-4" /> Completed</span></SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -163,8 +173,26 @@ export default function BookLibrary() {
           <Select value={filterGenre} onValueChange={(v) => setFilterGenre(v)}>
             <SelectTrigger className="mt-1"><SelectValue placeholder="All genres" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              {genres.map((g) => (<SelectItem key={g} value={g}>{g}</SelectItem>))}
+              <SelectItem value="all"><span className="flex items-center gap-2"><Tag className="h-4 w-4" /> All</span></SelectItem>
+              {genres.map((g) => (
+                <SelectItem key={g} value={g}>
+                  <span className="flex items-center gap-2">
+                    {(() => { const n = g.toLowerCase(); if (n.includes("fantasy")) return <Wand2 className="h-4 w-4" />; if (n.includes("romance")) return <Heart className="h-4 w-4" />; if (n.includes("mystery") || n.includes("thriller") || n.includes("crime")) return <Search className="h-4 w-4" />; if (n.includes("sci") || n.includes("science") || n.includes("space")) return <Rocket className="h-4 w-4" />; return <Tag className="h-4 w-4" />; })()}
+                    {g}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Word count</label>
+          <Select value={sort.startsWith("wc_") ? sort : "none"} onValueChange={(v) => setSort(v === "none" ? "date_desc" : (v as any))}>
+            <SelectTrigger className="mt-1"><SelectValue placeholder="Word count" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none"><span className="flex items-center gap-2"><Minus className="h-4 w-4" /> None</span></SelectItem>
+              <SelectItem value="wc_desc"><span className="flex items-center gap-2"><ArrowDown01 className="h-4 w-4" /> Highest to Lowest</span></SelectItem>
+              <SelectItem value="wc_asc"><span className="flex items-center gap-2"><ArrowUp10 className="h-4 w-4" /> Lowest to Highest</span></SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -236,11 +264,11 @@ export default function BookLibrary() {
             <Input ref={tagsRef} defaultValue={(editing?.tags || []).join(", ")} placeholder="Tags (comma-separated)" />
             <div>
               <label className="text-xs text-muted-foreground">Status</label>
-              <Select defaultValue={(editing?.status || "draft") as BookStatus} onValueChange={(v) => setStatusDraft(v as BookStatus)}>
+              <Select defaultValue={(editing?.completed ? "completed" : "draft")} onValueChange={(v) => setMetaStatusLib(v as any)}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -254,8 +282,9 @@ export default function BookLibrary() {
               const cover = (coverRef.current?.value || editing.cover || "").toString() || null;
               const genre = (genreRef.current?.value || editing.genre || "").toString() || null;
               const tags = (tagsRef.current?.value || (editing.tags || []).join(",")).split(",").map((t) => t.trim()).filter(Boolean);
-              const status = statusDraft || editing.status || "draft";
-              const completed = editing.completed ?? (status === "published");
+              const selected = metaStatusLib ?? (editing.completed ? "completed" : "draft");
+              const completed = selected === "completed";
+              const status: BookStatus = completed ? "published" : "draft";
               setBooks((prev) => updateBook(prev, editing.id, { title, description, cover, genre, tags, status, completed }));
               setEditing(null);
             }}>Save</Button>

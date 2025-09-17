@@ -15,6 +15,7 @@ import {
   updateBook,
 } from "@/lib/books";
 import { useNavigate } from "react-router-dom";
+import EditorFooterStats from "@/components/EditorFooterStats";
 import { Plus, Trash2, ArrowUp, ArrowDown, Edit2, MoreHorizontal, FileDown, FileJson } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -85,7 +86,7 @@ export default function BookQuill() {
 
   // Metadata dialog state
   const [metaOpen, setMetaOpen] = useState(false);
-  const [metaStatus, setMetaStatus] = useState<BookStatus>("draft");
+  const [metaStatus, setMetaStatus] = useState<"draft" | "completed" | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
@@ -219,6 +220,8 @@ export default function BookQuill() {
         </section>
       </div>
 
+      <EditorFooterStats content={value} />
+
       <Dialog open={metaOpen} onOpenChange={(v) => setMetaOpen(v)}>
         <DialogContent>
           <DialogHeader>
@@ -233,11 +236,11 @@ export default function BookQuill() {
             <Input ref={tagsRef} defaultValue={(current.tags || []).join(", ")} placeholder="Tags (comma-separated)" />
             <div>
               <label className="text-xs text-muted-foreground">Status</label>
-              <Select defaultValue={(current.status || "draft") as BookStatus} onValueChange={(v) => setMetaStatus(v as BookStatus)}>
+              <Select defaultValue={(current.completed ? "completed" : "draft")} onValueChange={(v) => setMetaStatus(v as any)}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -250,8 +253,9 @@ export default function BookQuill() {
               const cover = (coverRef.current?.value || current.cover || "").toString() || null;
               const genre = (genreRef.current?.value || current.genre || "").toString() || null;
               const tags = (tagsRef.current?.value || (current.tags || []).join(",")).split(",").map((t) => t.trim()).filter(Boolean);
-              const status = metaStatus || current.status || "draft";
-              const completed = current.completed ?? (status === "published");
+              const selected = metaStatus ?? (current.completed ? "completed" : "draft");
+              const completed = selected === "completed";
+              const status: BookStatus = completed ? "published" : "draft";
               setBooks((prev) => updateBook(prev, current.id, { title, description, cover, genre, tags, status, completed }));
               setMetaOpen(false);
             }}>Save</Button>

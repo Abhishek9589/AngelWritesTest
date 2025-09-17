@@ -50,7 +50,7 @@ export default function BookHome() {
   const coverFileRef = useRef<HTMLInputElement>(null);
   const genreRef = useRef<HTMLInputElement>(null);
   const tagsRef = useRef<HTMLInputElement>(null);
-  const [statusDraft, setStatusDraft] = useState<BookStatus>("draft");
+  const [newStatus, setNewStatus] = useState<"draft" | "completed">("draft");
   const importRef = useRef<HTMLInputElement>(null);
   const [coverDataUrl, setCoverDataUrl] = useState<string | null>(null);
   const [coverUrlInput, setCoverUrlInput] = useState<string>("");
@@ -61,8 +61,10 @@ export default function BookHome() {
     const cover = (coverDataUrl || coverUrlInput || null);
     const genre = (genreRef.current?.value || "").toString() || null;
     const tags = (tagsRef.current?.value || "").split(",").map((t) => t.trim()).filter(Boolean);
-    const status = statusDraft || "draft";
+    const completed = newStatus === "completed";
+    const status: BookStatus = completed ? "published" : "draft";
     const b = createBook({ title, description, cover, genre, tags, status });
+    if (completed) { b.completed = true; }
     setBooks((prev) => {
       const next = [b, ...prev];
       saveBooks(next);
@@ -190,11 +192,11 @@ export default function BookHome() {
             <Input ref={tagsRef} placeholder="Tags (comma-separated)" />
             <div>
               <label className="text-xs text-muted-foreground">Status</label>
-              <Select defaultValue="draft" onValueChange={(v) => setStatusDraft(v as BookStatus)}>
+              <Select defaultValue="draft" onValueChange={(v) => setNewStatus(v as any)}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
