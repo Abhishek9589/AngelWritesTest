@@ -23,6 +23,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDistanceToNow } from "date-fns";
+import { useDialog } from "@/lib/dialogs";
 
 const RichEditor = lazy(() => import("@/components/RichEditor"));
 
@@ -140,8 +141,10 @@ export default function BookQuill() {
     const nextActive = next[0]?.id || null;
     setBooks((prev) => updateBook(prev, current.id, { chapters: next, activeChapterId: nextActive }));
   };
-  const renameChapter = (id: string) => {
-    const title = prompt("Chapter title", chapters.find((c) => c.id === id)?.title || "");
+  const { prompt: promptDialog } = useDialog();
+  const renameChapter = async (id: string) => {
+    const currentTitle = chapters.find((c) => c.id === id)?.title || "";
+    const title = await promptDialog("Chapter title", currentTitle, "Rename Chapter");
     if (title == null) return;
     const next = chapters.map((c) => (c.id === id ? { ...c, title: title.trim() || c.title } : c));
     setBooks((prev) => updateBook(prev, current.id, { chapters: next }));
@@ -163,7 +166,7 @@ export default function BookQuill() {
       <div className="flex items-center justify-between mb-3">
         <div className="min-w-0">
           <h1 className="text-xl font-semibold truncate">{current.title}</h1>
-          <div className="text-xs text-muted-foreground h-4">{saving ? "Saving…" : lastSavedLabel}</div>
+          <div className="text-xs text-muted-foreground h-4">{saving ? "Saving���" : lastSavedLabel}</div>
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>

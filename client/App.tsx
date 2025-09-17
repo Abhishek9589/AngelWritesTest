@@ -29,6 +29,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { createRoot } from "react-dom/client";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { DialogProvider } from "@/lib/dialogs";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet, Link, Navigate, NavLink, useLocation, useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
@@ -172,27 +173,29 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Index />} />
-            <Route path="poem/:id" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><PoemDetail /></Suspense>} />
-            <Route path="favorites" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Favorites /></Suspense>} />
-            <Route path="dashboard" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Dashboard /></Suspense>} />
-            <Route path="manage" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Manage /></Suspense>} />
-            <Route path="themes" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Themes /></Suspense>} />
-            <Route path="backup" element={<Navigate to="/manage" replace />} />
-          </Route>
-          <Route path="/book" element={<Layout />}>
-            <Route index element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookHome /></Suspense>} />
-            <Route path="library" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookLibrary /></Suspense>} />
-            <Route path="quill" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookQuill /></Suspense>} />
-            <Route path="manage" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookManage /></Suspense>} />
-            <Route path="themes" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Themes /></Suspense>} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <DialogProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Index />} />
+              <Route path="poem/:id" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><PoemDetail /></Suspense>} />
+              <Route path="favorites" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Favorites /></Suspense>} />
+              <Route path="dashboard" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Dashboard /></Suspense>} />
+              <Route path="manage" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Manage /></Suspense>} />
+              <Route path="themes" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Themes /></Suspense>} />
+              <Route path="backup" element={<Navigate to="/manage" replace />} />
+            </Route>
+            <Route path="/book" element={<Layout />}>
+              <Route index element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookHome /></Suspense>} />
+              <Route path="library" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookLibrary /></Suspense>} />
+              <Route path="quill" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookQuill /></Suspense>} />
+              <Route path="manage" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookManage /></Suspense>} />
+              <Route path="themes" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Themes /></Suspense>} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </DialogProvider>
     </TooltipProvider>
       <Analytics />
   </QueryClientProvider>
