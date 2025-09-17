@@ -4,7 +4,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Bold, Italic, Strikethrough, List, ListOrdered, Undo2, Redo2, Eraser } from "lucide-react";
+import { Bold, Italic, Strikethrough, List, ListOrdered, Undo2, Redo2, Eraser, Quote, Heading1, Heading2, Heading3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type RichEditorProps = {
@@ -14,7 +14,6 @@ export type RichEditorProps = {
   placeholder?: string;
   toolbarExtras?: React.ReactNode;
 };
-
 
 export default function RichEditor({ value, onChange, className, placeholder, toolbarExtras }: RichEditorProps) {
   const editor = useEditor({
@@ -101,6 +100,71 @@ export default function RichEditor({ value, onChange, className, placeholder, to
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Strikethrough</TooltipContent>
+              </Tooltip>
+              <Separator orientation="vertical" className="mx-1 h-6" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Heading 1"
+                    title="Heading 1"
+                    className={btn(editor.isActive('heading', { level: 1 }))}
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                  >
+                    <Heading1 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Heading 1</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Heading 2"
+                    title="Heading 2"
+                    className={btn(editor.isActive('heading', { level: 2 }))}
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                  >
+                    <Heading2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Heading 2</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Heading 3"
+                    title="Heading 3"
+                    className={btn(editor.isActive('heading', { level: 3 }))}
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                  >
+                    <Heading3 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Heading 3</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Blockquote"
+                    title="Blockquote"
+                    className={btn(editor.isActive('blockquote'))}
+                    onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                  >
+                    <Quote className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Blockquote</TooltipContent>
               </Tooltip>
               <Separator orientation="vertical" className="mx-1 h-6" />
               <Tooltip>

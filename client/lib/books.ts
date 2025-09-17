@@ -43,6 +43,8 @@ export type Book = {
 
 const STORAGE_KEY = "books:v1";
 const STORAGE_LAST_OPEN = "books:lastOpened";
+const STORAGE_RECENTS = "books:recent";
+const STORAGE_WRITE_DAYS = "books:write:days";
 
 function ensureChapters(b: Book): Book {
   if (b.chapters && b.chapters.length > 0) return b;
@@ -117,6 +119,7 @@ export function updateBook(list: Book[], id: string, patch: Partial<Book>): Book
   }
   merged.lastEdited = new Date().toISOString();
   next[idx] = merged;
+  markWritingToday();
   saveBooks(next);
   return next;
 }
@@ -144,12 +147,60 @@ export function duplicateBook(list: Book[], id: string): Book[] {
 }
 
 export function setLastOpenedBookId(id: string | null) {
-  if (!id) localStorage.removeItem(STORAGE_LAST_OPEN);
-  else localStorage.setItem(STORAGE_LAST_OPEN, id);
+  if (!id) {
+    localStorage.removeItem(STORAGE_LAST_OPEN);
+    return;
+  }
+  localStorage.setItem(STORAGE_LAST_OPEN, id);
+  try {
+    const raw = localStorage.getItem(STORAGE_RECENTS);
+    const arr = Array.isArray(raw ? JSON.parse(raw) : null) ? (JSON.parse(raw) as string[]) : [];
+    const next = [id, ...arr.filter((x) => x !== id)].slice(0, 5);
+    localStorage.setItem(STORAGE_RECENTS, JSON.stringify(next));
+  } catch {}
 }
 
 export function getLastOpenedBookId(): string | null {
   return localStorage.getItem(STORAGE_LAST_OPEN);
+}
+
+export function getRecentBookIds(): string[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_RECENTS);
+    const arr = JSON.parse(raw || "[]");
+    return Array.isArray(arr) ? (arr as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function toDayString(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export function markWritingToday() {
+  try {
+    const today = toDayString(new Date());
+    const raw = localStorage.getItem(STORAGE_WRITE_DAYS);
+    const arr = Array.isArray(raw ? JSON.parse(raw) : null) ? (JSON.parse(raw) as string[]) : [];
+    if (!arr.includes(today)) {
+      arr.push(today);
+      localStorage.setItem(STORAGE_WRITE_DAYS, JSON.stringify(arr));
+    }
+  } catch {}
+}
+
+export function getWritingDays(): string[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_WRITE_DAYS);
+    const arr = JSON.parse(raw || "[]");
+    return Array.isArray(arr) ? (arr as string[]) : [];
+  } catch {
+    return [];
+  }
 }
 
 // ---- Export helpers (DOCX) ----

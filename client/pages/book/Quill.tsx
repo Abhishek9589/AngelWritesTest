@@ -2,9 +2,27 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/loading";
 import { POET_SARCASTIC_MESSAGES } from "@/lib/messages";
-import { Book, Chapter, getLastOpenedBookId, loadBooks, saveBooks, setLastOpenedBookId, updateBook } from "@/lib/books";
+import {
+  Book,
+  BookStatus,
+  Chapter,
+  exportBookToDOCX,
+  exportBookToEPUB,
+  exportBookToPDF,
+  exportBooksJSON,
+  getLastOpenedBookId,
+  loadBooks,
+  saveBooks,
+  setLastOpenedBookId,
+  updateBook,
+} from "@/lib/books";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, ArrowUp, ArrowDown, Edit2 } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, Edit2, MoreHorizontal, FileDown, FileText, FileJson } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatDistanceToNow } from "date-fns";
 
 const RichEditor = lazy(() => import("@/components/RichEditor"));
 
@@ -34,34 +52,57 @@ export default function BookQuill() {
     }
   }, [current?.id]);
 
-  useEffect(() => { saveBooks(books); }, [books]);
+  useEffect(() => {
+    saveBooks(books);
+  }, [books]);
 
+  // Load last opened book if navigated directly
   useEffect(() => {
     const id = getLastOpenedBookId();
     if (!id) return;
     setBookId(id);
   }, []);
 
+  // Keep last opened synced while in Quill
+  useEffect(() => {
+    if (current) setLastOpenedBookId(current.id);
+  }, [current?.id]);
+
   const chapterId = current?.activeChapterId || (current?.chapters && current.chapters[0]?.id) || null;
   const chapter = current?.chapters?.find((c) => c.id === chapterId) || null;
   const [value, setValue] = useState<string>(chapter?.content || "");
   const valueRef = useRef<string>(value);
 
+  // Saving state + last saved indicator
+  const [saving, setSaving] = useState(false);
+
+  // Metadata dialog state
+  const [metaOpen, setMetaOpen] = useState(false);
+  const [metaStatus, setMetaStatus] = useState<BookStatus>("draft");
+  const titleRef = useRef<HTMLInputElement>(null);
+  const descRef = useRef<HTMLInputElement>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
+  const genreRef = useRef<HTMLInputElement>(null);
+  const tagsRef = useRef<HTMLInputElement>(null);
+
   // Keep editor value in sync when chapter changes
   useEffect(() => {
     setValue(chapter?.content || "");
     valueRef.current = chapter?.content || "";
+    setSaving(false);
   }, [chapterId]);
 
   // Autosave editor content
   useEffect(() => {
     if (!current || !chapter) return;
+    setSaving(true);
     const t = window.setTimeout(() => {
       if (valueRef.current !== value) valueRef.current = value;
       if (value !== chapter.content) {
         const nextChapters = (current.chapters || []).map((c) => (c.id === chapter.id ? { ...c, content: value } : c));
         setBooks((prev) => updateBook(prev, current.id, { chapters: nextChapters }));
       }
+      setSaving(false);
     }, 800);
     return () => window.clearTimeout(t);
   }, [value, chapter?.id, current?.id]);
@@ -107,11 +148,28 @@ export default function BookQuill() {
     setBooks((prev) => updateBook(prev, current.id, { chapters: next }));
   };
 
+  const lastSavedLabel = current.lastEdited ? `Last saved ${formatDistanceToNow(new Date(current.lastEdited), { addSuffix: true })}` : "";
+
   return (
     <main className="container h-[calc(100vh-8rem)] py-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
       <div className="flex items-center justify-between mb-3">
-        <h1 className="text-xl font-semibold">{current.title}</h1>
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold truncate">{current.title}</h1>
+          <div className="text-xs text-muted-foreground h-4">{saving ? "Saving…" : lastSavedLabel}</div>
+        </div>
         <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2"><MoreHorizontal className="h-4 w-4" /> Quick Actions</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportBookToDOCX(current, `${current.title}.docx`)}><FileDown className="h-4 w-4 mr-2" /> Export DOCX</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportBookToEPUB(current, `${current.title}.epub`)}><FileText className="h-4 w-4 mr-2" /> Export EPUB</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportBookToPDF(current)}><FileText className="h-4 w-4 mr-2" /> Export PDF</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportBooksJSON([current], `${current.title}.json`)}><FileJson className="h-4 w-4 mr-2" /> Export JSON</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setMetaStatus(current.status || "draft"); setMetaOpen(true); }}>Edit Metadata</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="outline" onClick={() => navigate("/book/library")}>Library</Button>
           <Button onClick={() => { if (chapter) setBooks((prev) => updateBook(prev, current.id, { chapters: chapters.map((c) => c.id === chapter.id ? { ...c, content: value } : c) })); setLastOpenedBookId(current.id); }}>Save</Button>
         </div>
@@ -153,6 +211,46 @@ export default function BookQuill() {
           )}
         </section>
       </div>
+
+      <Dialog open={metaOpen} onOpenChange={(v) => setMetaOpen(v)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Metadata</DialogTitle>
+            <DialogDescription>Update the book details for exports and organization.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <Input ref={titleRef} defaultValue={current.title} placeholder="Title" />
+            <Input ref={descRef} defaultValue={current.description || ""} placeholder="Short description" />
+            <Input ref={coverRef} defaultValue={current.cover || ""} placeholder="Cover image URL" />
+            <Input ref={genreRef} defaultValue={current.genre || ""} placeholder="Genre" />
+            <Input ref={tagsRef} defaultValue={(current.tags || []).join(", ")} placeholder="Tags (comma-separated)" />
+            <div>
+              <label className="text-xs text-muted-foreground">Status</label>
+              <Select defaultValue={(current.status || "draft") as BookStatus} onValueChange={(v) => setMetaStatus(v as BookStatus)}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMetaOpen(false)}>Cancel</Button>
+            <Button onClick={() => {
+              const title = (titleRef.current?.value || current.title).toString();
+              const description = (descRef.current?.value || current.description || "").toString();
+              const cover = (coverRef.current?.value || current.cover || "").toString() || null;
+              const genre = (genreRef.current?.value || current.genre || "").toString() || null;
+              const tags = (tagsRef.current?.value || (current.tags || []).join(",")).split(",").map((t) => t.trim()).filter(Boolean);
+              const status = metaStatus || current.status || "draft";
+              const completed = current.completed ?? (status === "published");
+              setBooks((prev) => updateBook(prev, current.id, { title, description, cover, genre, tags, status, completed }));
+              setMetaOpen(false);
+            }}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
