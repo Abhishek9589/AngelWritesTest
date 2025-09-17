@@ -56,7 +56,11 @@ export default function BookLibrary() {
 
   const onCreate = () => {
     const b = createBook({ title: "Untitled Book" });
-    setBooks((prev) => [b, ...prev]);
+    setBooks((prev) => {
+      const next = [b, ...prev];
+      saveBooks(next);
+      return next;
+    });
     setLastOpenedBookId(b.id);
     navigate("/book/quill");
   };

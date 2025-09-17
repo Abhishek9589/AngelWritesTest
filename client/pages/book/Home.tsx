@@ -76,7 +76,11 @@ export default function BookHome() {
     const tags = (tagsRef.current?.value || "").split(",").map((t) => t.trim()).filter(Boolean);
     const status = statusDraft || "draft";
     const b = createBook({ title, description, cover, genre, tags, status });
-    setBooks((prev) => [b, ...prev]);
+    setBooks((prev) => {
+      const next = [b, ...prev];
+      saveBooks(next);
+      return next;
+    });
     setLastOpenedBookId(b.id);
     setOpenNew(false);
     navigate("/book/quill");

@@ -1,5 +1,29 @@
 import "./global.css";
 
+// Safety shim: wrap ResizeObserver callback to avoid uncaught exceptions
+if (typeof window !== 'undefined' && (window as any).ResizeObserver) {
+  const NativeRO = (window as any).ResizeObserver;
+  try {
+    (window as any).ResizeObserver = class ResizeObserverShim extends NativeRO {
+      constructor(callback: any) {
+        const safe = (entries: any, observer: any) => {
+          try {
+            callback(entries, observer);
+          } catch (e) {
+            // swallow ResizeObserver loop errors or any callback errors
+            // keep console for visibility
+            // eslint-disable-next-line no-console
+            console.warn('[ResizeObserver] callback error:', e);
+          }
+        };
+        super(safe);
+      }
+    };
+  } catch (e) {
+    // ignore if environment prevents reassigning ResizeObserver
+  }
+}
+
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { createRoot } from "react-dom/client";
@@ -48,27 +72,12 @@ function Layout() {
     }
   }, []);
 
-  // Keep dataset.theme in sync with current route context (poem/book) and Light/Dark mode
+  // Keep dataset.theme in sync with current route context (poem/book) using unified preset storage
   useEffect(() => {
     const root = document.documentElement;
-    const getMode = () => (root.classList.contains("dark") ? "dark" : "light");
-    const apply = () => {
-      const ctx = location.pathname.startsWith("/book") ? "book" : "poem";
-      const mode = getMode();
-      const key = `${mode === "dark" ? "themePresetDark" : "themePresetLight"}_${ctx}`;
-      let preset = localStorage.getItem(key);
-      if (!preset) preset = ctx === "book" ? "minimal-zen" : "pastel";
-      root.dataset.theme = preset;
-    };
-
-    const observer = new MutationObserver((mutations) => {
-      for (const m of mutations) {
-        if (m.type === "attributes" && m.attributeName === "class") apply();
-      }
-    });
-    observer.observe(root, { attributes: true });
-    apply();
-    return () => observer.disconnect();
+    const ctx = location.pathname.startsWith("/book") ? "book" : "poem";
+    const preset = localStorage.getItem(`themePreset_${ctx}`) || "pastel";
+    root.dataset.theme = preset;
   }, [location.pathname]);
 
   return (

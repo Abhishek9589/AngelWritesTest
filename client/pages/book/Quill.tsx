@@ -63,6 +63,14 @@ export default function BookQuill() {
     setBookId(id);
   }, []);
 
+  // Ensure books are refreshed from storage if we have an id but not the book yet
+  useEffect(() => {
+    if (bookId && !current) {
+      const stored = loadBooks();
+      setBooks(stored);
+    }
+  }, [bookId, current]);
+
   // Keep last opened synced while in Quill
   useEffect(() => {
     if (current) setLastOpenedBookId(current.id);
