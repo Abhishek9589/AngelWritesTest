@@ -23,6 +23,8 @@ function nanoid(size = 12): string {
 
 export type Chapter = { id: string; title: string; content: string };
 
+export type BookStatus = "draft" | "published";
+
 export type Book = {
   id: string;
   title: string;
@@ -34,6 +36,9 @@ export type Book = {
   lastEdited: string; // ISO date
   createdAt: string; // ISO date
   completed?: boolean;
+  genre?: string | null;
+  tags?: string[];
+  status?: BookStatus;
 };
 
 const STORAGE_KEY = "books:v1";
@@ -59,6 +64,10 @@ export function loadBooks(): Book[] {
       content: b.content || "",
       lastEdited: b.lastEdited || new Date().toISOString(),
       createdAt: b.createdAt || new Date().toISOString(),
+      completed: !!b.completed,
+      genre: b.genre ?? null,
+      tags: Array.isArray(b.tags) ? b.tags : typeof (b as any).tags === "string" ? (b as any).tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
+      status: (b.status as BookStatus) || (b.completed ? "published" : "draft"),
     }));
   } catch {
     return [];
@@ -69,7 +78,7 @@ export function saveBooks(books: Book[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
 }
 
-export function createBook(init?: Partial<Pick<Book, "title" | "description" | "cover" | "content">>): Book {
+export function createBook(init?: Partial<Pick<Book, "title" | "description" | "cover" | "content" | "genre" | "tags" | "status">>): Book {
   const now = new Date();
   const chapter: Chapter = { id: nanoid(), title: "Chapter 1", content: init?.content || "" };
   return {
@@ -83,6 +92,9 @@ export function createBook(init?: Partial<Pick<Book, "title" | "description" | "
     createdAt: now.toISOString(),
     lastEdited: now.toISOString(),
     completed: false,
+    genre: init?.genre ?? null,
+    tags: init?.tags ?? [],
+    status: init?.status ?? "draft",
   };
 }
 
@@ -99,7 +111,12 @@ export function updateBook(list: Book[], id: string, patch: Partial<Book>): Book
   const idx = list.findIndex((b) => b.id === id);
   if (idx < 0) return list;
   const next = [...list];
-  next[idx] = { ...next[idx], ...patch, lastEdited: new Date().toISOString() };
+  const merged: Book = { ...next[idx], ...patch } as Book;
+  if (typeof patch.completed !== "undefined") {
+    merged.status = patch.completed ? "published" : (merged.status || "draft");
+  }
+  merged.lastEdited = new Date().toISOString();
+  next[idx] = merged;
   saveBooks(next);
   return next;
 }
@@ -300,6 +317,62 @@ export function download(filename: string, data: string | Blob, mime = "applicat
 
 export function exportBooksJSON(books: Book[], filename = "angelwrites-books.json") {
   download(filename, JSON.stringify({ books }, null, 2), "application/json");
+}
+
+export function getBookWordCount(book: Book): number {
+  const html = (book.chapters && book.chapters.length ? book.chapters.map((c) => c.content).join("\n") : book.content) || "";
+  const text = html.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+  if (!text) return 0;
+  return text.split(/\s+/).length;
+}
+
+export async function exportBookToEPUB(book: Book, filename = "book.epub") {
+  const { default: JSZip } = await import("jszip");
+  const zip = new JSZip();
+  zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
+  zip.file(
+    "META-INF/container.xml",
+    `<?xml version="1.0" encoding="UTF-8"?>\n<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">\n  <rootfiles>\n    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>\n  </rootfiles>\n</container>`,
+  );
+  const chapters = book.chapters && book.chapters.length ? book.chapters : [{ id: "legacy", title: book.title, content: book.content }];
+  const manifestItems: string[] = [];
+  const spineItems: string[] = [];
+  chapters.forEach((ch, idx) => {
+    const id = `ch${idx + 1}`;
+    const xhtml = `<?xml version="1.0" encoding="utf-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml">\n<head>\n  <title>${escapeXml(ch.title)}</title>\n  <meta charset="utf-8"/>\n</head>\n<body>\n  <h1>${escapeXml(ch.title)}</h1>\n  ${sanitizeHtml(ch.content || "")}
+</body>\n</html>`;
+    zip.file(`OEBPS/${id}.xhtml`, xhtml);
+    manifestItems.push(`<item id="${id}" href="${id}.xhtml" media-type="application/xhtml+xml"/>`);
+    spineItems.push(`<itemref idref="${id}"/>`);
+  });
+  const opf = `<?xml version="1.0" encoding="UTF-8"?>\n<package version="2.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="BookId">\n  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">\n    <dc:title>${escapeXml(book.title)}</dc:title>\n    <dc:language>en</dc:language>\n    <dc:date>${new Date(book.lastEdited).toISOString()}</dc:date>\n  </metadata>\n  <manifest>\n    ${manifestItems.join("\n    ")}\n    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>\n  </manifest>\n  <spine toc="ncx">\n    ${spineItems.join("\n    ")}\n  </spine>\n</package>`;
+  const toc = `<?xml version="1.0" encoding="UTF-8"?>\n<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">\n  <head>\n    <meta name="dtb:uid" content="id"/>\n    <meta name="dtb:depth" content="1"/>\n  </head>\n  <docTitle><text>${escapeXml(book.title)}</text></docTitle>\n  <navMap>\n    ${chapters
+      .map((ch, i) => `<navPoint id="navPoint-${i + 1}" playOrder="${i + 1}"><navLabel><text>${escapeXml(ch.title)}</text></navLabel><content src="ch${i + 1}.xhtml"/></navPoint>`)
+      .join("\n    ")}\n  </navMap>\n</ncx>`;
+  zip.file("OEBPS/content.opf", opf);
+  zip.file("OEBPS/toc.ncx", toc);
+  const blob = await zip.generateAsync({ type: "blob", mimeType: "application/epub+zip" });
+  download(filename, blob, "application/epub+zip");
+}
+
+function escapeXml(s: string): string {
+  return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&apos;");
+}
+
+export function exportBookToPDF(book: Book) {
+  const w = window.open("", "_blank");
+  if (!w) return;
+  const styles = `body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;padding:40px;} h1,h2,h3{margin:1.2em 0 .5em;} hr{margin:2em 0;} .meta{color:#666;font-size:12px;margin-bottom:20px}`;
+  const body = `<!doctype html><html><head><meta charset="utf-8"/><title>${escapeXml(book.title)}</title><style>${styles}</style></head><body><h1>${escapeXml(book.title)}</h1><div class="meta">Last edited ${format(new Date(book.lastEdited), "PPP")}</div>${
+    book.chapters && book.chapters.length
+      ? book.chapters.map((c, i) => `<h2>${escapeXml(c.title)}</h2>${sanitizeHtml(c.content || "")}${i < (book.chapters?.length || 0) - 1 ? "<hr/>" : ""}`).join("")
+      : sanitizeHtml(book.content)
+  }</body></html>`;
+  w.document.open();
+  w.document.write(body);
+  w.document.close();
+  w.focus();
+  w.print();
 }
 
 export function importBooksFromJSON(list: Book[], json: string): Book[] {

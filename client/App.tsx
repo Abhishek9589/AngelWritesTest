@@ -48,6 +48,28 @@ function Layout() {
     }
   }, []);
 
+  // Keep dataset.theme in sync with current route context (poem/book) and Light/Dark mode
+  useEffect(() => {
+    const root = document.documentElement;
+    const getMode = () => (root.classList.contains("dark") ? "dark" : "light");
+    const apply = () => {
+      const ctx = location.pathname.startsWith("/book") ? "book" : "poem";
+      const mode = getMode();
+      const key = `${mode === "dark" ? "themePresetDark" : "themePresetLight"}_${ctx}`;
+      let preset = localStorage.getItem(key);
+      if (!preset) preset = ctx === "book" ? "minimal-zen" : "pastel";
+      root.dataset.theme = preset;
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.type === "attributes" && m.attributeName === "class") apply();
+      }
+    });
+    observer.observe(root, { attributes: true });
+    apply();
+    return () => observer.disconnect();
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen pt-24">

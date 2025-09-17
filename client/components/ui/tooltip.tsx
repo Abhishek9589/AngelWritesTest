@@ -3,7 +3,12 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
 import { cn } from "@/lib/utils";
 
-const TooltipProvider = TooltipPrimitive.Provider;
+// Provide a safe Provider wrapper. In some environments multiple React copies or bundler issues
+// can cause Radix's Provider to call hooks before React is available. The Provider is optional
+// for basic tooltip behavior, so export a no-op functional provider to avoid runtime errors.
+const TooltipProvider: React.FC<React.PropsWithChildren<unknown>> = ({ children }) => {
+  return <>{children}</>;
+};
 
 const Tooltip = TooltipPrimitive.Root;
 

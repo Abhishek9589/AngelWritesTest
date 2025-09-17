@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "react-router-dom";
 
 function getSystemPref(): "light" | "dark" {
   if (typeof window === "undefined") return "light";
@@ -29,25 +30,62 @@ export const PRESETS = [...POEM_PRESETS, ...BOOK_PRESETS] as const;
 
 export type PresetKey = typeof PRESETS[number]["key"];
 
+function getContext(pathname: string): "poem" | "book" {
+  return pathname.startsWith("/book") ? "book" : "poem";
+}
+
+function getStoredPreset(mode: "light" | "dark", context: "poem" | "book"): PresetKey {
+  const key = `${mode === "dark" ? "themePresetDark" : "themePresetLight"}_${context}`;
+  const stored = localStorage.getItem(key) as PresetKey | null;
+  if (stored) return stored;
+  return context === "book" ? ("minimal-zen" as PresetKey) : ("pastel" as PresetKey);
+}
+
 export function ThemeToggle() {
+  const location = useLocation();
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     const stored = localStorage.getItem("theme");
     return (stored as "light" | "dark") || getSystemPref();
   });
 
+  // Migrate legacy keys to context-aware storage
+  useEffect(() => {
+    const legacySingle = localStorage.getItem("themePreset") as PresetKey | null;
+    const legacyLight = localStorage.getItem("themePresetLight") as PresetKey | null;
+    const legacyDark = localStorage.getItem("themePresetDark") as PresetKey | null;
+    if (legacySingle) {
+      ["poem", "book"].forEach((ctx) => {
+        if (!localStorage.getItem(`themePresetLight_${ctx}`)) localStorage.setItem(`themePresetLight_${ctx}`, legacySingle);
+        if (!localStorage.getItem(`themePresetDark_${ctx}`)) localStorage.setItem(`themePresetDark_${ctx}`, legacySingle);
+      });
+      localStorage.removeItem("themePreset");
+    }
+    if (legacyLight || legacyDark) {
+      ["poem", "book"].forEach((ctx) => {
+        if (legacyLight && !localStorage.getItem(`themePresetLight_${ctx}`)) localStorage.setItem(`themePresetLight_${ctx}`, legacyLight);
+        if (legacyDark && !localStorage.getItem(`themePresetDark_${ctx}`)) localStorage.setItem(`themePresetDark_${ctx}`, legacyDark);
+      });
+      localStorage.removeItem("themePresetLight");
+      localStorage.removeItem("themePresetDark");
+    }
+  }, []);
+
+  // Apply dark class and the context-aware preset for the active mode
   useEffect(() => {
     const root = document.documentElement;
     if (theme === "dark") root.classList.add("dark");
     else root.classList.remove("dark");
     localStorage.setItem("theme", theme);
-  }, [theme]);
+    const ctx = getContext(location.pathname);
+    root.dataset.theme = getStoredPreset(theme, ctx);
+  }, [theme, location.pathname]);
 
-  // Ensure the saved color preset applies globally on mount
+  // Initial apply on mount
   useEffect(() => {
-    const stored = localStorage.getItem("themePreset") as PresetKey | null;
-    const preset = stored || "pastel";
-    document.documentElement.dataset.theme = preset;
-  }, []);
+    const mode = (localStorage.getItem("theme") as "light" | "dark") || getSystemPref();
+    const ctx = getContext(location.pathname);
+    document.documentElement.dataset.theme = getStoredPreset(mode, ctx);
+  }, [location.pathname]);
 
   const toggle = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
