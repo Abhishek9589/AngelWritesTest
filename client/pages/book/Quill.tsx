@@ -161,11 +161,11 @@ export default function BookQuill() {
   const lastSavedLabel = current.lastEdited ? `Last saved ${formatDistanceToNow(new Date(current.lastEdited), { addSuffix: true })}` : "";
 
   return (
-    <main className="container h-[calc(100vh-8rem)] py-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
-      <div className="flex items-center justify-between mb-3">
+    <main className="container book-mode lg:h-[calc(100vh-8rem)] py-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div className="min-w-0">
           <h1 className="text-xl font-semibold truncate">{current.title}</h1>
-          <div className="text-xs text-muted-foreground h-4">{saving ? "Saving���" : lastSavedLabel}</div>
+          <div className="text-xs text-muted-foreground h-4">{saving ? "Saving…" : lastSavedLabel}</div>
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>
@@ -175,15 +175,15 @@ export default function BookQuill() {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => exportBookToDOCX(current, `${current.title}.docx`)}><FileDown className="h-4 w-4 mr-2" /> Export DOCX</DropdownMenuItem>
               <DropdownMenuItem onClick={() => exportBooksJSON([current], `${current.title}.json`)}><FileJson className="h-4 w-4 mr-2" /> Export JSON</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setMetaStatus(current.status || "draft"); setMetaOpen(true); }}>Edit Metadata</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setMetaStatus(current.completed ? "completed" : "draft"); setMetaOpen(true); }}>Edit Metadata</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <Button variant="outline" onClick={() => navigate("/book/library")}>Library</Button>
           <Button onClick={() => { if (chapter) setBooks((prev) => updateBook(prev, current.id, { chapters: chapters.map((c) => c.id === chapter.id ? { ...c, content: value } : c) })); setLastOpenedBookId(current.id); }}>Save</Button>
         </div>
       </div>
-      <div className="grid grid-cols-12 gap-4 h-[calc(100%-3rem)]">
-        <aside className="col-span-12 md:col-span-3 lg:col-span-2 rounded-2xl border p-3 glass-soft overflow-auto">
+      <div className="grid grid-cols-12 gap-4 lg:h-[calc(100%-3rem)]">
+        <aside className="col-span-12 lg:col-span-3 xl:col-span-2 rounded-2xl border p-3 glass-soft overflow-auto">
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-medium text-muted-foreground">Chapters</div>
             <Button size="sm" variant="outline" className="h-8 px-3" onClick={addChapter}><Plus className="h-4 w-4" /></Button>
@@ -205,7 +205,7 @@ export default function BookQuill() {
           </nav>
         </aside>
 
-        <section className="col-span-12 md:col-span-9 lg:col-span-10">
+        <section className="col-span-12 lg:col-span-9 xl:col-span-10">
           {!chapter ? (
             <div className="rounded-2xl border p-6 glass-soft h-full">
               <div className="text-sm text-muted-foreground">No chapter selected.</div>

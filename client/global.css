@@ -1120,6 +1120,7 @@ body::before {
     transform: translateX(-50%);
   }
   .nav-underline:hover::after { width: 70%; }
+  .scroll-fade-x { mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%); -webkit-mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%); }
 }
 
 /* Hide native date picker indicator; use our custom icon instead */
@@ -1144,3 +1145,11 @@ body { overscroll-behavior: contain; }
 /* Hide scrollbar for elements with .no-scrollbar (still scrollable) */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+@layer components {
+  /* Ensure comfortable tap targets inside Book Mode only */
+  .book-mode button,
+  .book-mode [role="button"] {
+    min-height: 44px;
+  }
+}

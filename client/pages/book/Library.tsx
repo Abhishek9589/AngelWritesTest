@@ -129,7 +129,7 @@ export default function BookLibrary() {
   }, [books, filterStatus, filterGenre, filterTags, sort]);
 
   return (
-    <main className="container py-10 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
+    <main className="container book-mode py-10 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
       <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Library</h1>
         <div className="flex flex-wrap items-center gap-2">
@@ -137,7 +137,7 @@ export default function BookLibrary() {
         </div>
       </div>
 
-      <section className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <Card><CardContent className="p-5"><div className="flex items-center gap-3"><BookOpen className="h-5 w-5" /><div><div className="text-sm text-muted-foreground">Total Books</div><div className="text-2xl font-semibold">{stats.total}</div></div></div></CardContent></Card>
         <Card><CardContent className="p-5"><div className="flex items-center gap-3"><Hash className="h-5 w-5" /><div><div className="text-sm text-muted-foreground">Chapters Written</div><div className="text-2xl font-semibold">{stats.chapters}</div></div></div></CardContent></Card>
         <Card><CardContent className="p-5"><div className="flex items-center gap-3"><FileText className="h-5 w-5" /><div><div className="text-sm text-muted-foreground">Total Words</div><div className="text-2xl font-semibold">{stats.totalWords}</div></div></div></CardContent></Card>

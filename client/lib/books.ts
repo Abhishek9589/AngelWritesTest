@@ -1,9 +1,11 @@
 import { sanitizeHtml } from "@/lib/html";
 import { format } from "date-fns";
+import { loadSiteTitle } from "@/lib/site";
 import {
   AlignmentType,
   Document as DocxDocument,
   HeadingLevel,
+  BorderStyle,
   Packer,
   Paragraph,
   TextRun,
@@ -254,7 +256,7 @@ function paragraphFromElement(el: HTMLElement): Paragraph[] {
     const children = runsFromInline(el);
     paragraphs.push(new Paragraph({ children, spacing }));
   } else if (tag === "H1" || tag === "H2" || tag === "H3" || tag === "H4" || tag === "H5" || tag === "H6") {
-    const level: Record<string, HeadingLevel> = {
+    const level = {
       H1: HeadingLevel.HEADING_1,
       H2: HeadingLevel.HEADING_2,
       H3: HeadingLevel.HEADING_3,
@@ -277,7 +279,7 @@ function paragraphFromElement(el: HTMLElement): Paragraph[] {
     });
   } else if (tag === "BLOCKQUOTE") {
     const inner = runsFromInline(el);
-    paragraphs.push(new Paragraph({ children: inner, spacing, indent: { left: 720 }, border: { left: { color: "CCCCCC", space: 1, size: 6 } } }));
+    paragraphs.push(new Paragraph({ children: inner, spacing, indent: { left: 720 }, border: { left: { color: "CCCCCC", space: 1, size: 6, style: BorderStyle.SINGLE } } }));
   } else if (tag === "PRE") {
     const text = el.textContent || "";
     const lines = text.split(/\r?\n/);
@@ -347,7 +349,12 @@ export async function createDOCXBlobForBook(book: Book): Promise<Blob> {
   return blob;
 }
 
-export async function exportBookToDOCX(book: Book, filename = "angelwrites-book.docx") {
+function sanitizeFilename(name: string, ext: string) {
+  const base = String(name || "").replace(/[\\\/:*?"<>|]/g, "_").trim().slice(0, 80) || "book";
+  return `${base}.${ext}`;
+}
+
+export async function exportBookToDOCX(book: Book, filename = sanitizeFilename(book.title, "docx")) {
   const blob = await createDOCXBlobForBook(book);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -371,7 +378,7 @@ export function download(filename: string, data: string | Blob, mime = "applicat
   URL.revokeObjectURL(url);
 }
 
-export function exportBooksJSON(books: Book[], filename = "angelwrites-books.json") {
+export function exportBooksJSON(books: Book[], filename = sanitizeFilename(`${loadSiteTitle()}-books`, "json")) {
   download(filename, JSON.stringify({ books }, null, 2), "application/json");
 }
 

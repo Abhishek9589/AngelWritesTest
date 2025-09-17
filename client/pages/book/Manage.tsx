@@ -16,6 +16,7 @@ import {
 import JSZip from "jszip";
 import { FileDown, FileJson, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { loadSiteTitle } from "@/lib/site";
 
 function sanitizeFilename(name: string, ext: string) {
   const base = name.replace(/[\\/:*?"<>|]/g, "_").trim().slice(0, 80) || "book";
@@ -76,7 +77,8 @@ export default function BookManage() {
   const exportSelectedJSON = () => {
     if (selected.size === 0) return toast.info("Select books first.");
     const list = books.filter((b) => selected.has(b.id));
-    exportBooksJSON(list, "AngelWrites-books-selected.json");
+    const site = loadSiteTitle();
+    exportBooksJSON(list, sanitizeFilename(`${site}-books-selected`, "json"));
   };
 
 
@@ -117,7 +119,7 @@ export default function BookManage() {
   }
 
   return (
-    <main className="container py-10 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
+    <main className="container book-mode py-10 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
       <h1 className="text-2xl font-bold">Manage</h1>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

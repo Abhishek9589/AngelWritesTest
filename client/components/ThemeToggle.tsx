@@ -26,7 +26,7 @@ export const BOOK_PRESETS = [
   { key: "strawberry", label: "Strawberry Milk", swatch: ["#ffe5ec", "#ffcad4", "#ff6b8a"] },
 ] as const;
 
-export const PRESETS = POEM_PRESETS as const;
+export const PRESETS = POEM_PRESETS;
 
 export type PresetKey = typeof PRESETS[number]["key"];
 

@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils";
 
 // Provide a TooltipProvider that uses Radix's Provider so Tooltips have the required context.
 // Keep it simple but robust so tooltip components work across the app.
-const TooltipProvider: React.FC<React.PropsWithChildren<unknown>> = ({ children }) => {
+const TooltipProvider: React.FC<React.ComponentProps<typeof TooltipPrimitive.Provider>> = ({ children, ...providerProps }) => {
   try {
-    return <TooltipPrimitive.Provider>{children}</TooltipPrimitive.Provider>;
+    return <TooltipPrimitive.Provider {...providerProps}>{children}</TooltipPrimitive.Provider>;
   } catch (e) {
     // Fall back to rendering children directly if the Provider cannot be constructed
     // (should be rare). This prevents runtime crashes in weird bundling environments.

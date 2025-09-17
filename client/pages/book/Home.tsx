@@ -114,7 +114,7 @@ export default function BookHome() {
   }
 
   return (
-    <main className="container py-10 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
+    <main className="container book-mode py-10 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
       <section className="relative overflow-hidden rounded-3xl p-8 md:p-12 mb-6 glass">
         <div className="relative z-10">
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight gradient-text">Book Hub</h1>

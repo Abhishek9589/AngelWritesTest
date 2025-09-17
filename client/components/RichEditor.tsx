@@ -84,7 +84,7 @@ export default function RichEditor({ value, onChange, className, placeholder, to
   useEffect(() => {
     if (!editor) return;
     const current = editor.getHTML();
-    if (value !== current) editor.commands.setContent(value || "", { emitUpdate: false });
+    if (value !== current) editor.commands.setContent(value || "", false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
@@ -110,7 +110,7 @@ export default function RichEditor({ value, onChange, className, placeholder, to
   if (!editor) return null;
 
   const btn = (active: boolean) => cn(
-    "h-8 px-2 rounded-md",
+    "h-11 px-3 md:h-8 md:px-2 rounded-md",
     active ? "bg-primary text-primary-foreground" : "hover:bg-accent/60"
   );
 
@@ -120,7 +120,7 @@ export default function RichEditor({ value, onChange, className, placeholder, to
         <div className={cn(
           "mx-auto flex flex-nowrap items-center",
           hasExtras ? "justify-between" : "justify-start",
-          "gap-1.5 whitespace-nowrap rounded-md border bg-background/80 px-2 py-1 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm overflow-x-auto no-scrollbar"
+          "gap-1.5 whitespace-nowrap rounded-md border bg-background/80 px-2 py-1 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm overflow-x-auto no-scrollbar scroll-fade-x"
         )}>
           {hasExtras && <div className="flex items-center gap-3 min-w-0">{toolbarExtras}</div>}
           <TooltipProvider delayDuration={150}>
@@ -155,7 +155,7 @@ export default function RichEditor({ value, onChange, className, placeholder, to
               {/* Font */}
               <div className="flex items-center gap-1">
                 <Select value={fontKey || undefined} onValueChange={(k: FontKey) => editor.chain().focus().setFontFamily(FONT_MAP[k]).run()}>
-                  <SelectTrigger className="h-8 px-2 py-0 w-[9.5rem] text-xs">
+                  <SelectTrigger className="h-11 md:h-8 px-3 md:px-2 py-0 w-36 sm:w-[9.5rem] text-xs">
                     <SelectValue placeholder="Font Family" />
                   </SelectTrigger>
                   <SelectContent className="text-sm">
@@ -175,7 +175,7 @@ export default function RichEditor({ value, onChange, className, placeholder, to
                   if (v === "heading") chain.toggleHeading({ level: 2 }).run();
                   if (v === "subheading") chain.toggleHeading({ level: 3 }).run();
                 }}>
-                  <SelectTrigger className="h-8 px-2 py-0 w-[8.5rem] text-xs">
+                  <SelectTrigger className="h-11 md:h-8 px-3 md:px-2 py-0 w-32 sm:w-[8.5rem] text-xs">
                     <SelectValue placeholder="Font Size" />
                   </SelectTrigger>
                   <SelectContent className="text-sm">
