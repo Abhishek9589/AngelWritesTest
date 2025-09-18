@@ -43,6 +43,8 @@ import { loadSiteTitle } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { LoadingScreen } from "@/components/ui/loading";
 import { POET_SARCASTIC_MESSAGES } from "@/lib/messages";
+import { loadPoems, savePoems } from "@/lib/poems";
+import { loadBooks, saveBooks } from "@/lib/books";
 
 const PoemDetail = lazy(() => import("./pages/PoemDetail"));
 const Favorites = lazy(() => import("./pages/Favorites"));
@@ -57,16 +59,50 @@ const BookManage = lazy(() => import("./pages/book/Manage"));
 
 const queryClient = new QueryClient();
 
+type NavUser = { id: string; username: string; email: string } | null;
+
 function Layout() {
   const [title] = useState<string>(() => loadSiteTitle());
   const location = useLocation();
   const navigate = useNavigate();
   const isBookMode = useMemo(() => location.pathname.startsWith("/book"), [location.pathname]);
   const isEditMode = useMemo(() => location.pathname.startsWith("/book/quill"), [location.pathname]);
+  const [authUser, setAuthUser] = useState<NavUser>(() => {
+    try { return JSON.parse(localStorage.getItem("aw.auth") || "null"); } catch { return null; }
+  });
 
   useEffect(() => {
     document.title = `${title} - Poetry Manager`;
   }, [title]);
+
+  useEffect(() => {
+    const load = () => {
+      try { setAuthUser(JSON.parse(localStorage.getItem("aw.auth") || "null")); } catch { setAuthUser(null); }
+    };
+    load();
+    const onAuth = () => load();
+    window.addEventListener("aw-auth-changed", onAuth);
+    window.addEventListener("storage", onAuth);
+    return () => {
+      window.removeEventListener("aw-auth-changed", onAuth);
+      window.removeEventListener("storage", onAuth);
+    };
+  }, []);
+
+  useEffect(() => {
+    try { setAuthUser(JSON.parse(localStorage.getItem("aw.auth") || "null")); } catch { setAuthUser(null); }
+  }, [location.key]);
+
+  useEffect(() => {
+    if (!authUser) return;
+    try {
+      // Push existing local data to DB for the signed-in user
+      const poems = loadPoems();
+      savePoems(poems);
+      const books = loadBooks();
+      saveBooks(books);
+    } catch {}
+  }, [authUser?.id]);
 
   useEffect(() => {
     if (navigator.storage && navigator.storage.persist) {
@@ -121,6 +157,9 @@ function Layout() {
                 </>
               )}
             </nav>
+            {authUser ? (
+              <span className="hidden md:inline text-sm text-muted-foreground mr-2" aria-live="polite">hi {authUser.username}</span>
+            ) : null}
             <ThemeToggle />
             <Sheet>
               <SheetTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "md:hidden")} aria-label="Open menu">

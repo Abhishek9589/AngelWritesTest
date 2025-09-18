@@ -38,9 +38,14 @@ export const handleSignUp: RequestHandler = async (req, res) => {
     await ensureIndexes();
     const db = await getDb();
     const users = db.collection("users");
-    const exists = await users.findOne({ $or: [{ email: body.email.toLowerCase() }, { username: body.username }] });
-    if (exists) {
-      const resp: GenericAuthResponse = { ok: false, message: "User already exists" };
+    const emailExists = await users.findOne({ email: body.email.toLowerCase() });
+    const usernameExists = await users.findOne({ username: body.username });
+    if (emailExists || usernameExists) {
+      let message = "User already exists";
+      if (emailExists && usernameExists) message = "Email and username already in use";
+      else if (emailExists) message = "Email already in use";
+      else if (usernameExists) message = "Username already taken";
+      const resp: GenericAuthResponse = { ok: false, message };
       return res.status(409).json(resp);
     }
 
@@ -100,10 +105,15 @@ export const handleVerifySignup: RequestHandler = async (req, res) => {
     // Create user
     await ensureIndexes();
     const users = db.collection("users");
-    const exists = await users.findOne({ $or: [{ email: email.toLowerCase() }, { username: pending.username }] });
-    if (exists) {
+    const emailExists = await users.findOne({ email: email.toLowerCase() });
+    const usernameExists = await users.findOne({ username: pending.username });
+    if (emailExists || usernameExists) {
       await db.collection("signup_otps").deleteOne({ _id: pending._id });
-      return res.status(409).json({ ok: false, message: "User already exists" });
+      let message = "User already exists";
+      if (emailExists && usernameExists) message = "Email and username already in use";
+      else if (emailExists) message = "Email already in use";
+      else if (usernameExists) message = "Username already taken";
+      return res.status(409).json({ ok: false, message });
     }
     const now = new Date();
     const r = await users.insertOne({

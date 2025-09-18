@@ -7,6 +7,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { LogIn, PenLine, KeyRound, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
+function friendlyError(err: unknown, fallback: string): string {
+  const raw = String((err as any)?.message || err || "").trim();
+  if (!raw) return fallback;
+  const technical = [/NetworkError/i, /Failed to fetch/i, /body stream/i, /already read/i, /already used/i, /Unexpected end of JSON/i, /SyntaxError/i, /TypeError/i, /clone/i, /\bResponse\b/i];
+  if (technical.some((re) => re.test(raw))) return fallback;
+  return raw.length > 140 ? fallback : raw;
+}
+
 type AuthUser = { id: string; username: string; email: string };
 
 function SignInForm({ onSignedIn }: { onSignedIn: (user: AuthUser) => void }) {
@@ -18,6 +26,7 @@ function SignInForm({ onSignedIn }: { onSignedIn: (user: AuthUser) => void }) {
   const otpRef = React.useRef<HTMLInputElement>(null);
   const newPassRef = React.useRef<HTMLInputElement>(null);
   const confirmPassRef = React.useRef<HTMLInputElement>(null);
+  const [fpVerifiedCode, setFpVerifiedCode] = React.useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -30,16 +39,17 @@ function SignInForm({ onSignedIn }: { onSignedIn: (user: AuthUser) => void }) {
     setLoading(true);
     try {
       const r = await fetch("/api/auth/signin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const raw = await r.clone().text();
+      const raw = await r.text();
       let data: any = {};
       try { data = raw ? JSON.parse(raw) : {}; } catch {}
       if (!r.ok || data?.ok === false || !data?.user) throw new Error(data?.message || "Sign in failed");
       const user: AuthUser = data.user;
       localStorage.setItem("aw.auth", JSON.stringify(user));
+      try { window.dispatchEvent(new Event("aw-auth-changed")); } catch {}
       onSignedIn(user);
       toast.success("Signed in");
     } catch (err) {
-      toast.error(String((err as any)?.message || err));
+      toast.error(friendlyError(err, "Couldn’t sign you in. Check your details and try again."));
     } finally {
       setLoading(false);
     }
@@ -59,23 +69,25 @@ function SignInForm({ onSignedIn }: { onSignedIn: (user: AuthUser) => void }) {
               type="button"
               variant="link"
               className="px-0 text-xs text-foreground/70 hover:text-foreground"
+              disabled={fpLoading}
               onClick={async () => {
                 const identifier = String(identRef.current?.value || "").trim();
                 if (!identifier) { toast.error("Please enter your username or email."); return; }
+                setFpVerifiedCode(null);
+                setFpStep("otp");
                 setFpLoading(true);
                 try {
                   const r = await fetch("/api/auth/forgot/init", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier }) });
-                  const raw = await r.clone().text();
+                  const raw = await r.text();
                   let data: any = {}; try { data = raw ? JSON.parse(raw) : {}; } catch {}
                   if (!r.ok || data?.ok === false) {
                     const msg = data?.message || (identifier.includes("@") ? "No email found." : "No username found.");
                     throw new Error(msg);
                   }
                   toast.success("OTP sent to your email");
-                  setFpStep("otp");
                   setFpOpen(true);
                 } catch (err) {
-                  toast.error(String((err as any)?.message || err));
+                  toast.error(friendlyError(err, "We couldn’t find that account. Please check and try again."));
                 } finally {
                   setFpLoading(false);
                 }
@@ -89,7 +101,7 @@ function SignInForm({ onSignedIn }: { onSignedIn: (user: AuthUser) => void }) {
         <Button type="submit" className="w-full" disabled={loading}>{loading ? "Signing in…" : "Continue"}</Button>
       </form>
 
-      <Dialog open={fpOpen} onOpenChange={setFpOpen}>
+      <Dialog open={fpOpen} onOpenChange={(open) => { setFpOpen(open); if (!open) { setFpStep("otp"); setFpVerifiedCode(null); if (otpRef.current) otpRef.current.value = ""; if (newPassRef.current) newPassRef.current.value = ""; if (confirmPassRef.current) confirmPassRef.current.value = ""; } }}>
         <DialogContent titleText={fpStep === "otp" ? "Verify OTP" : "Reset Password"}>
           <DialogHeader>
             <DialogTitle>{fpStep === "otp" ? "OTP Verification" : "Set a new password"}</DialogTitle>
@@ -112,13 +124,14 @@ function SignInForm({ onSignedIn }: { onSignedIn: (user: AuthUser) => void }) {
                   setFpLoading(true);
                   try {
                     const r = await fetch("/api/auth/forgot/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier, code }) });
-                    const raw = await r.clone().text();
+                    const raw = await r.text();
                     let data: any = {}; try { data = raw ? JSON.parse(raw) : {}; } catch {}
                     if (!r.ok || data?.ok === false) throw new Error(data?.message || "Invalid or expired OTP.");
                     toast.success("OTP verified");
+                    setFpVerifiedCode(code);
                     setFpStep("reset");
                   } catch (err) {
-                    toast.error(String((err as any)?.message || err));
+                    toast.error(friendlyError(err, "That code looks wrong or expired. Please request a new one."));
                   } finally {
                     setFpLoading(false);
                   }
@@ -133,31 +146,26 @@ function SignInForm({ onSignedIn }: { onSignedIn: (user: AuthUser) => void }) {
                 <Label htmlFor="fp-new">New Password</Label>
                 <Input id="fp-new" ref={newPassRef} type="password" autoComplete="new-password" placeholder="Create a strong password" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="fp-confirm">Confirm Password</Label>
-                <Input id="fp-confirm" ref={confirmPassRef} type="password" autoComplete="new-password" placeholder="Repeat password" />
-              </div>
               <Button
                 className="w-full"
                 disabled={fpLoading}
                 onClick={async () => {
                   const identifier = String(identRef.current?.value || "").trim();
-                  const code = String(otpRef.current?.value || "").trim();
+                  const code = String(fpVerifiedCode || "").trim();
                   const newPassword = String(newPassRef.current?.value || "").trim();
-                  const confirm = String(confirmPassRef.current?.value || "").trim();
-                  if (!newPassword || !confirm) return;
-                  if (newPassword !== confirm) { toast.error("Passwords do not match."); return; }
+                  if (!code) { toast.error("Please verify OTP first."); return; }
+                  if (!newPassword) return;
                   if (newPassword.length < 6) { toast.error("Password must be at least 6 characters."); return; }
                   setFpLoading(true);
                   try {
                     const r = await fetch("/api/auth/forgot/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier, code, newPassword }) });
-                    const raw = await r.clone().text();
+                    const raw = await r.text();
                     let data: any = {}; try { data = raw ? JSON.parse(raw) : {}; } catch {}
                     if (!r.ok || data?.ok === false) throw new Error(data?.message || "Failed to reset password");
                     toast.success("Password changed successfully.");
                     setFpOpen(false);
                   } catch (err) {
-                    toast.error(String((err as any)?.message || err));
+                    toast.error(friendlyError(err, "Couldn’t reset password. Please try again."));
                   } finally {
                     setFpLoading(false);
                   }
@@ -185,7 +193,7 @@ function SignUpForm({ onCompleted }: { onCompleted?: () => void }) {
     setLoading(true);
     try {
       const r = await fetch("/api/auth/signup/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, code }) });
-      const raw = await r.clone().text();
+      const raw = await r.text();
       let data: any = {};
       try { data = raw ? JSON.parse(raw) : {}; } catch {}
       if (!r.ok || data?.ok === false) throw new Error(data?.message || "Verification failed");
@@ -193,7 +201,7 @@ function SignUpForm({ onCompleted }: { onCompleted?: () => void }) {
       setOtpOpen(false);
       onCompleted?.();
     } catch (err) {
-      toast.error(String((err as any)?.message || err));
+      toast.error(friendlyError(err, "Verification failed. Check the code and try again."));
     } finally {
       setLoading(false);
     }
@@ -211,7 +219,7 @@ function SignUpForm({ onCompleted }: { onCompleted?: () => void }) {
     setLoading(true);
     try {
       const r = await fetch("/api/auth/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const raw = await r.clone().text();
+      const raw = await r.text();
       let data: any = {};
       try { data = raw ? JSON.parse(raw) : {}; } catch {}
       if (!r.ok || data?.ok === false) throw new Error(data?.message || "Failed to send OTP");
@@ -219,7 +227,7 @@ function SignUpForm({ onCompleted }: { onCompleted?: () => void }) {
       setOtpOpen(true);
       toast.success("OTP sent to your email");
     } catch (err) {
-      toast.error(String((err as any)?.message || err));
+      toast.error(friendlyError(err, "Couldn’t send the code. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -274,13 +282,13 @@ function AccountPanel({ user, onSignOff }: { user: AuthUser; onSignOff: () => vo
     try {
       const identifier = user.email || user.username;
       const r = await fetch("/api/auth/password/change", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier, currentPassword, newPassword }) });
-      const raw = await r.clone().text();
+      const raw = await r.text();
       let data: any = {}; try { data = raw ? JSON.parse(raw) : {}; } catch {}
       if (!r.ok || data?.ok === false) throw new Error(data?.message || "Failed to update password");
       toast.success("Password updated");
       formEl.reset();
     } catch (err) {
-      toast.error(String((err as any)?.message || err));
+      toast.error(friendlyError(err, "Couldn’t update password. Check your current password and try again."));
     } finally {
       setLoading(false);
     }
@@ -319,7 +327,7 @@ export default function JoinUs() {
     try { return JSON.parse(localStorage.getItem("aw.auth") || "null"); } catch { return null; }
   });
   const handleSignedIn = (u: AuthUser) => setUser(u);
-  const handleSignOff = () => { localStorage.removeItem("aw.auth"); setUser(null); };
+  const handleSignOff = () => { localStorage.removeItem("aw.auth"); try { window.dispatchEvent(new Event("aw-auth-changed")); } catch {} setUser(null); };
 
   return (
     <main className="container py-10 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">

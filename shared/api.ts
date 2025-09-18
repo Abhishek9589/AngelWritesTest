@@ -65,7 +65,7 @@ export interface PoemDTO {
   updatedAt: number;
   versions?: Array<{ id: string; ts: number; title: string; content: string; date: string; tags: string[] }>;
 }
-export interface BulkPoemsRequest { poems: PoemDTO[] }
+export interface BulkPoemsRequest { poems: PoemDTO[]; ownerId?: string }
 
 // ---- Books ----
 export interface ChapterDTO { id: string; title: string; content: string }
@@ -85,4 +85,4 @@ export interface BookDTO {
   tags?: string[];
   status?: BookStatus;
 }
-export interface BulkBooksRequest { books: BookDTO[] }
+export interface BulkBooksRequest { books: BookDTO[]; ownerId?: string }

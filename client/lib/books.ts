@@ -44,6 +44,11 @@ export type Book = {
 };
 
 const STORAGE_KEY = "books:v1";
+
+type AuthUser = { id: string; username: string; email: string } | null;
+function getAuthUser(): AuthUser {
+  try { return JSON.parse(localStorage.getItem("aw.auth") || "null"); } catch { return null; }
+}
 const STORAGE_LAST_OPEN = "books:lastOpened";
 const STORAGE_RECENTS = "books:recent";
 const STORAGE_WRITE_DAYS = "books:write:days";
@@ -55,22 +60,37 @@ function ensureChapters(b: Book): Book {
 }
 
 export function loadBooks(): Book[] {
-  // Try server first in background; return local immediately
+  // Try server for logged-in users in background; return local immediately
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 2500);
   const local = readLocalBooks();
-  fetch("/api/books", { signal: ctrl.signal })
-    .then(async (r) => {
-      if (!r.ok) throw new Error("failed");
-      const raw = await r.clone().text();
-      try {
-        const data = raw ? JSON.parse(raw) : {} as any;
-        if (Array.isArray((data as any)?.books)) {
-          try { localStorage.setItem(STORAGE_KEY, JSON.stringify((data as any).books)); } catch {}
-        }
-      } catch {}
-    })
-    .catch(() => {});
+  const auth = getAuthUser();
+  if (auth) {
+    fetch(`/api/books?ownerId=${encodeURIComponent(auth.id)}`, { signal: ctrl.signal, headers: { "x-user-id": auth.id } })
+      .then(async (r) => {
+        if (!r.ok) throw new Error("failed");
+        const raw = await r.text();
+        try {
+          const data = raw ? JSON.parse(raw) : {} as any;
+          const remote = Array.isArray((data as any)?.books) ? (data as any).books as Book[] : [];
+          // Merge remote with current local to avoid losing unsynced items
+          let current: Book[] = [];
+          try { current = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch {}
+          const byId = new Map<string, Book>();
+          const all = [...current, ...remote];
+          for (const b of all) {
+            const prev = byId.get(b.id);
+            if (!prev) { byId.set(b.id, b); continue; }
+            const prevTs = Date.parse(prev.lastEdited || prev.createdAt || "");
+            const curTs = Date.parse(b.lastEdited || b.createdAt || "");
+            byId.set(b.id, isNaN(prevTs) || isNaN(curTs) ? b : (curTs >= prevTs ? b : prev));
+          }
+          const merged = Array.from(byId.values());
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch {}
+        } catch {}
+      })
+      .catch(() => {});
+  }
   clearTimeout(t);
   return local;
 }
@@ -101,11 +121,17 @@ function readLocalBooks(): Book[] {
 
 export function saveBooks(books: Book[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
-  // Best-effort sync to server
+  // Sync to server only if logged in
   try {
-    const payload = { books };
-    navigator.sendBeacon?.("/api/books/bulk", new Blob([JSON.stringify(payload)], { type: "application/json" })) ||
-      fetch("/api/books/bulk", { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
+    const auth = getAuthUser();
+    if (!auth) return;
+    const payload = { books, ownerId: auth.id } as any;
+    if (navigator.sendBeacon) {
+      const ok = navigator.sendBeacon("/api/books/bulk", new Blob([JSON.stringify(payload)], { type: "application/json" }));
+      if (!ok) throw new Error("beacon_failed");
+    } else {
+      fetch("/api/books/bulk", { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json", "x-user-id": auth.id }, keepalive: true }).catch(() => {});
+    }
   } catch {}
 }
 

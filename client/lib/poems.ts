@@ -22,6 +22,11 @@ export type Poem = {
   versions?: VersionSnapshot[];
 };
 
+type AuthUser = { id: string; username: string; email: string } | null;
+function getAuthUser(): AuthUser {
+  try { return JSON.parse(localStorage.getItem("aw.auth") || "null"); } catch { return null; }
+}
+
 export type PoemInput = {
   title: string;
   content: string;
@@ -39,24 +44,36 @@ const STORAGE_FALLBACK_KEYS = [
 ] as const;
 
 export function loadPoems(): Poem[] {
-  // Try server first (sync DB), fallback to localStorage
+  // Try server for logged-in users; otherwise use localStorage only
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 2500);
   try {
-    // Synchronous fallback to local immediately; also fire async refresh
     const local = readLocalPoems();
-    fetch("/api/poems", { signal: ctrl.signal })
-      .then(async (r) => {
-        if (!r.ok) throw new Error("failed");
-        const raw = await r.clone().text();
-        try {
-          const data = raw ? JSON.parse(raw) : {};
-          if (Array.isArray((data as any)?.poems)) {
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify((data as any).poems)); } catch {}
-          }
-        } catch {}
-      })
-      .catch(() => {});
+    const auth = getAuthUser();
+    if (auth) {
+      fetch(`/api/poems?ownerId=${encodeURIComponent(auth.id)}`, { signal: ctrl.signal, headers: { "x-user-id": auth.id } })
+        .then(async (r) => {
+          if (!r.ok) throw new Error("failed");
+          const raw = await r.text();
+          try {
+            const data = raw ? JSON.parse(raw) : {};
+            const remote = Array.isArray((data as any)?.poems) ? (data as any).poems as Poem[] : [];
+            let current: Poem[] = [];
+            try { current = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch {}
+            const byId = new Map<string, Poem>();
+            const all = [...current, ...remote];
+            for (const p of all) {
+              const prev = byId.get(p.id);
+              if (!prev) { byId.set(p.id, p); continue; }
+              const newer = (p.updatedAt || 0) >= (prev.updatedAt || 0) ? p : prev;
+              byId.set(p.id, newer);
+            }
+            const merged = Array.from(byId.values());
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch {}
+          } catch {}
+        })
+        .catch(() => {});
+    }
     return local;
   } catch (e) {
     console.error("Failed to load poems", e);
@@ -104,11 +121,17 @@ export function savePoems(poems: Poem[]) {
   } catch (e) {
     console.error("Failed to save poems", e);
   }
-  // Best-effort sync to server
+  // Sync to server only if logged in
   try {
-    const payload = { poems };
-    navigator.sendBeacon?.("/api/poems/bulk", new Blob([JSON.stringify(payload)], { type: "application/json" })) ||
-      fetch("/api/poems/bulk", { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
+    const auth = getAuthUser();
+    if (!auth) return;
+    const payload = { poems, ownerId: auth.id } as any;
+    if (navigator.sendBeacon) {
+      const ok = navigator.sendBeacon("/api/poems/bulk", new Blob([JSON.stringify(payload)], { type: "application/json" }));
+      if (!ok) throw new Error("beacon_failed");
+    } else {
+      fetch("/api/poems/bulk", { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json", "x-user-id": auth.id }, keepalive: true }).catch(() => {});
+    }
   } catch {}
 }
 
