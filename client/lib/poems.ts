@@ -121,7 +121,7 @@ export function loadPoems(): Poem[] {
   // Background sync from server and merge to local
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 2500);
-  fetch(`/api/poems?ownerId=${encodeURIComponent(auth.id)}`, { signal: ctrl.signal, headers: { "x-user-id": auth.id } })
+  fetch(`/api/poems`, { signal: ctrl.signal })
     .then(async (r) => {
       if (!r.ok) throw new Error("failed");
       const raw = await r.text();
@@ -147,12 +147,12 @@ export function savePoems(poems: Poem[]) {
   // Sync to server only if logged in
   try {
     if (!auth) return;
-    const payload = { poems, ownerId: auth.id } as any;
+    const payload = { poems } as any;
     if (navigator.sendBeacon) {
       const ok = navigator.sendBeacon("/api/poems/bulk", new Blob([JSON.stringify(payload)], { type: "application/json" }));
       if (!ok) throw new Error("beacon_failed");
     } else {
-      fetch("/api/poems/bulk", { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json", "x-user-id": auth.id }, keepalive: true }).catch(() => {});
+      fetch("/api/poems/bulk", { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
     }
   } catch {}
 }

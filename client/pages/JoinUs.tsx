@@ -327,7 +327,7 @@ export default function JoinUs() {
     try { return JSON.parse(localStorage.getItem("aw.auth") || "null"); } catch { return null; }
   });
   const handleSignedIn = (u: AuthUser) => setUser(u);
-  const handleSignOff = () => { localStorage.removeItem("aw.auth"); try { window.dispatchEvent(new Event("aw-auth-changed")); } catch {} setUser(null); };
+  const handleSignOff = () => { fetch("/api/auth/signout", { method: "POST" }).catch(() => {}); localStorage.removeItem("aw.auth"); try { window.dispatchEvent(new Event("aw-auth-changed")); } catch {} setUser(null); };
 
   return (
     <main className="container py-10 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">

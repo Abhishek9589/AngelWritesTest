@@ -4,6 +4,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import type { SignUpRequest, SignInRequest, SignInResponse, GenericAuthResponse, ChangePasswordRequest, ForgotInitRequest, ForgotVerifyRequest, ForgotResetRequest } from "@shared/api";
 import { createMailer } from "../lib/mailer";
+import { signAccessToken, setAuthCookie, clearAuthCookie } from "../lib/auth-token";
 
 const signUpSchema = z.object({
   username: z.string().min(3).max(32).regex(/^[a-zA-Z0-9_\-\.]+$/),
@@ -144,7 +145,10 @@ export const handleSignIn: RequestHandler = async (req, res) => {
     const now = new Date();
     await db.collection("auth_events").insertOne({ type: "signin", userId: user._id, ts: now, ok });
     if (!ok) return res.status(401).json({ ok: false, message: "Invalid credentials" } satisfies SignInResponse);
-    res.json({ ok: true, user: { id: String(user._id), username: user.username, email: user.email } } satisfies SignInResponse);
+    const pub = { id: String(user._id), username: user.username, email: user.email };
+    const token = signAccessToken(pub);
+    setAuthCookie(res, token, 7 * 24 * 60 * 60);
+    res.json({ ok: true, user: pub } satisfies SignInResponse);
   } catch (err: any) {
     res.status(400).json({ ok: false, message: err?.message || "Invalid request" } satisfies SignInResponse);
   }
@@ -275,4 +279,9 @@ export const handleForgotReset: RequestHandler = async (req, res) => {
   } catch (err: any) {
     res.status(400).json({ ok: false, message: err?.message || "Invalid request" });
   }
+};
+
+export const handleSignOut: RequestHandler = async (_req, res) => {
+  clearAuthCookie(res);
+  res.json({ ok: true, message: "signed_out" });
 };

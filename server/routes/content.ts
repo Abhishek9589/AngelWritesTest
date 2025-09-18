@@ -2,6 +2,7 @@ import type { RequestHandler } from "express";
 import { getDb } from "../lib/mongo";
 import { z } from "zod";
 import type { BulkPoemsRequest, PoemDTO, BulkBooksRequest, BookDTO } from "@shared/api";
+import { getAuthUser } from "../lib/auth-token";
 
 const poemSchema = z.object({
   id: z.string().min(1),
@@ -46,20 +47,21 @@ export const bulkUpsertPoems: RequestHandler = async (req, res) => {
   try {
     await ensureIndexes();
     const rawBody = (req.body || {}) as any;
-    const body = { poems: z.array(poemSchema).parse(rawBody.poems || []), ownerId: typeof rawBody.ownerId === 'string' ? rawBody.ownerId : undefined };
-    const ownerId = (req.header("x-user-id") as string) || body.ownerId || undefined;
+    const body = { poems: z.array(poemSchema).parse(rawBody.poems || []) };
+    const auth = getAuthUser(req);
+    if (!auth) return res.status(401).json({ ok: false, upserted: 0, message: "unauthorized" });
+    const ownerId = auth.id;
     const db = await getDb();
     const ops = body.poems.map((p) => ({
       updateOne: {
-        filter: ownerId ? { ownerId, id: p.id } : { id: p.id },
-        update: { $set: ownerId ? { ...p, ownerId } : p },
+        filter: { ownerId, id: p.id },
+        update: { $set: { ...p, ownerId } },
         upsert: true,
       },
     }));
     if (ops.length) await db.collection("poems").bulkWrite(ops, { ordered: false });
     res.json({ ok: true, upserted: ops.length });
   } catch (err: any) {
-    // Do not crash when DB is unavailable; acknowledge request but not persisted
     const body = (req.body || {}) as any;
     const count = Array.isArray(body.poems) ? body.poems.length : 0;
     res.json({ ok: false, upserted: 0, message: err?.message || "db_unavailable", received: count });
@@ -68,14 +70,14 @@ export const bulkUpsertPoems: RequestHandler = async (req, res) => {
 
 export const listPoems: RequestHandler = async (req, res) => {
   try {
-    const ownerId = (req.header("x-user-id") as string) || (req.query.ownerId as string) || undefined;
+    const auth = getAuthUser(req);
+    if (!auth) return res.json({ poems: [] as PoemDTO[] });
+    const ownerId = auth.id;
     const db = await getDb();
-    const filter = ownerId ? { ownerId } : { ownerId: "__none__" };
-    const items = await db.collection("poems").find(filter, { projection: { _id: 0 } }).toArray();
+    const items = await db.collection("poems").find({ ownerId }, { projection: { _id: 0 } }).toArray();
     const poems = z.array(poemSchema).parse(items);
     res.json({ poems });
   } catch (err: any) {
-    // Graceful fallback: no DB -> empty list
     res.json({ poems: [] as PoemDTO[], error: err?.message || "db_unavailable" });
   }
 };
@@ -84,13 +86,15 @@ export const bulkUpsertBooks: RequestHandler = async (req, res) => {
   try {
     await ensureIndexes();
     const rawBody = (req.body || {}) as any;
-    const body = { books: z.array(bookSchema).parse(rawBody.books || []), ownerId: typeof rawBody.ownerId === 'string' ? rawBody.ownerId : undefined };
-    const ownerId = (req.header("x-user-id") as string) || body.ownerId || undefined;
+    const body = { books: z.array(bookSchema).parse(rawBody.books || []) };
+    const auth = getAuthUser(req);
+    if (!auth) return res.status(401).json({ ok: false, upserted: 0, message: "unauthorized" });
+    const ownerId = auth.id;
     const db = await getDb();
     const ops = body.books.map((b) => ({
       updateOne: {
-        filter: ownerId ? { ownerId, id: b.id } : { id: b.id },
-        update: { $set: ownerId ? { ...b, ownerId } : b },
+        filter: { ownerId, id: b.id },
+        update: { $set: { ...b, ownerId } },
         upsert: true,
       },
     }));
@@ -105,10 +109,11 @@ export const bulkUpsertBooks: RequestHandler = async (req, res) => {
 
 export const listBooks: RequestHandler = async (req, res) => {
   try {
-    const ownerId = (req.header("x-user-id") as string) || (req.query.ownerId as string) || undefined;
+    const auth = getAuthUser(req);
+    if (!auth) return res.json({ books: [] as BookDTO[] });
+    const ownerId = auth.id;
     const db = await getDb();
-    const filter = ownerId ? { ownerId } : { ownerId: "__none__" };
-    const items = await db.collection("books").find(filter, { projection: { _id: 0 } }).toArray();
+    const items = await db.collection("books").find({ ownerId }, { projection: { _id: 0 } }).toArray();
     const books = z.array(bookSchema).parse(items);
     res.json({ books });
   } catch (err: any) {

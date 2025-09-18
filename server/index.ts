@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { pingMongo } from "./lib/mongo";
-import { handleSignIn, handleSignUp, handleVerifySignup, handleChangePassword, handleForgotInit, handleForgotVerify, handleForgotReset } from "./routes/auth";
+import { handleSignIn, handleSignUp, handleVerifySignup, handleChangePassword, handleForgotInit, handleForgotVerify, handleForgotReset, handleSignOut } from "./routes/auth";
 import { bulkUpsertPoems, bulkUpsertBooks, listPoems, listBooks } from "./routes/content";
 
 export function createServer() {
@@ -26,6 +26,7 @@ export function createServer() {
   app.post("/api/auth/signup", handleSignUp);
   app.post("/api/auth/signup/verify", handleVerifySignup);
   app.post("/api/auth/signin", handleSignIn);
+  app.post("/api/auth/signout", handleSignOut);
   app.post("/api/auth/password/change", handleChangePassword);
   app.post("/api/auth/forgot/init", handleForgotInit);
   app.post("/api/auth/forgot/verify", handleForgotVerify);

@@ -120,7 +120,7 @@ export function loadBooks(): Book[] {
   // Background fetch from server and merge
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 2500);
-  fetch(`/api/books?ownerId=${encodeURIComponent(auth.id)}`, { signal: ctrl.signal, headers: { "x-user-id": auth.id } })
+  fetch(`/api/books`, { signal: ctrl.signal })
     .then(async (r) => {
       if (!r.ok) throw new Error("failed");
       const raw = await r.text();
@@ -145,12 +145,12 @@ export function saveBooks(books: Book[]) {
   // Sync to server only if logged in
   try {
     if (!auth) return;
-    const payload = { books, ownerId: auth.id } as any;
+    const payload = { books } as any;
     if (navigator.sendBeacon) {
       const ok = navigator.sendBeacon("/api/books/bulk", new Blob([JSON.stringify(payload)], { type: "application/json" }));
       if (!ok) throw new Error("beacon_failed");
     } else {
-      fetch("/api/books/bulk", { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json", "x-user-id": auth.id }, keepalive: true }).catch(() => {});
+      fetch("/api/books/bulk", { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
     }
   } catch {}
 }
