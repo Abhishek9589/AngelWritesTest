@@ -31,6 +31,15 @@ export default function BookHome() {
   useEffect(() => {
     saveBooks(books);
   }, [books]);
+  useEffect(() => {
+    const reload = () => setBooks(loadBooks());
+    window.addEventListener("aw-auth-changed", reload);
+    window.addEventListener("storage", reload);
+    return () => {
+      window.removeEventListener("aw-auth-changed", reload);
+      window.removeEventListener("storage", reload);
+    };
+  }, []);
 
 
   const lastId = getLastOpenedBookId();
@@ -55,10 +64,19 @@ export default function BookHome() {
   const [coverDataUrl, setCoverDataUrl] = useState<string | null>(null);
   const [coverUrlInput, setCoverUrlInput] = useState<string>("");
 
-  const onCreate = () => {
+  const onCreate = async () => {
     const title = (titleRef.current?.value || "Untitled Book").toString();
     const description = (descRef.current?.value || "").toString();
-    const cover = (coverDataUrl || coverUrlInput || null);
+    let cover: string | null = null;
+    try {
+      const src = (coverDataUrl || coverUrlInput || "").trim();
+      if (src) {
+        const { uploadCover } = await import("@/lib/uploads");
+        cover = await uploadCover(src);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Cover upload failed");
+    }
     const genre = (genreRef.current?.value || "").toString() || null;
     const tags = (tagsRef.current?.value || "").split(",").map((t) => t.trim()).filter(Boolean);
     const completed = newStatus === "completed";

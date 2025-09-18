@@ -43,15 +43,29 @@ export type Book = {
   status?: BookStatus;
 };
 
-const STORAGE_KEY = "books:v1";
-
 type AuthUser = { id: string; username: string; email: string } | null;
 function getAuthUser(): AuthUser {
   try { return JSON.parse(localStorage.getItem("aw.auth") || "null"); } catch { return null; }
 }
-const STORAGE_LAST_OPEN = "books:lastOpened";
-const STORAGE_RECENTS = "books:recent";
-const STORAGE_WRITE_DAYS = "books:write:days";
+
+const LEGACY_KEY = "books:v1";
+function storageKeyForUser(userId: string | null): string { return userId ? `aw:books:${userId}` : "aw:books:anon"; }
+
+function parseBooks(raw: string | null): Book[] {
+  if (!raw) return [];
+  try {
+    const obj = JSON.parse(raw);
+    return Array.isArray(obj) ? (obj as Book[]) : (Array.isArray((obj as any)?.books) ? ((obj as any).books as Book[]) : []);
+  } catch { return []; }
+}
+
+function readLocalBooksForKey(key: string): Book[] {
+  try { return parseBooks(localStorage.getItem(key)); } catch { return []; }
+}
+
+function writeLocalBooksForKey(key: string, books: Book[]) {
+  try { localStorage.setItem(key, JSON.stringify(books)); } catch {}
+}
 
 function ensureChapters(b: Book): Book {
   if (b.chapters && b.chapters.length > 0) return b;
@@ -59,71 +73,67 @@ function ensureChapters(b: Book): Book {
   return { ...b, chapters: [first], activeChapterId: first.id };
 }
 
-export function loadBooks(): Book[] {
-  // Try server for logged-in users in background; return local immediately
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 2500);
-  const local = readLocalBooks();
-  const auth = getAuthUser();
-  if (auth) {
-    fetch(`/api/books?ownerId=${encodeURIComponent(auth.id)}`, { signal: ctrl.signal, headers: { "x-user-id": auth.id } })
-      .then(async (r) => {
-        if (!r.ok) throw new Error("failed");
-        const raw = await r.text();
-        try {
-          const data = raw ? JSON.parse(raw) : {} as any;
-          const remote = Array.isArray((data as any)?.books) ? (data as any).books as Book[] : [];
-          // Merge remote with current local to avoid losing unsynced items
-          let current: Book[] = [];
-          try { current = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch {}
-          const byId = new Map<string, Book>();
-          const all = [...current, ...remote];
-          for (const b of all) {
-            const prev = byId.get(b.id);
-            if (!prev) { byId.set(b.id, b); continue; }
-            const prevTs = Date.parse(prev.lastEdited || prev.createdAt || "");
-            const curTs = Date.parse(b.lastEdited || b.createdAt || "");
-            byId.set(b.id, isNaN(prevTs) || isNaN(curTs) ? b : (curTs >= prevTs ? b : prev));
-          }
-          const merged = Array.from(byId.values());
-          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch {}
-        } catch {}
-      })
-      .catch(() => {});
+function mergeByNewest(a: Book[], b: Book[]): Book[] {
+  const map = new Map<string, Book>();
+  for (const item of [...a, ...b]) {
+    const prev = map.get(item.id);
+    if (!prev) { map.set(item.id, item); continue; }
+    const prevTs = Date.parse(prev.lastEdited || prev.createdAt || "");
+    const curTs = Date.parse(item.lastEdited || item.createdAt || "");
+    map.set(item.id, isNaN(prevTs) || isNaN(curTs) ? item : (curTs >= prevTs ? item : prev));
   }
-  clearTimeout(t);
-  return local;
+  return Array.from(map.values());
 }
 
-function readLocalBooks(): Book[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const arr = JSON.parse(raw) as Book[];
-    if (!Array.isArray(arr)) return [];
-    return arr.map((b) => ensureChapters({
-      ...b,
-      id: b.id || nanoid(),
-      title: (b.title || "Untitled Book").trim(),
-      description: b.description || "",
-      content: b.content || "",
-      lastEdited: b.lastEdited || new Date().toISOString(),
-      createdAt: b.createdAt || new Date().toISOString(),
-      completed: !!b.completed,
-      genre: b.genre ?? null,
-      tags: Array.isArray(b.tags) ? b.tags : typeof (b as any).tags === "string" ? (b as any).tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
-      status: (b.status as BookStatus) || (b.completed ? "published" : "draft"),
-    }));
-  } catch {
+export function loadBooks(): Book[] {
+  const auth = getAuthUser();
+  if (!auth) {
+    // Hide all user data when logged out
     return [];
   }
+
+  const userKey = storageKeyForUser(auth.id);
+  let local = readLocalBooksForKey(userKey);
+
+  // Migrate legacy and anon data
+  try {
+    let legacy = readLocalBooksForKey(LEGACY_KEY);
+    const anon = readLocalBooksForKey(storageKeyForUser(null));
+    if (legacy.length || anon.length) {
+      local = mergeByNewest(local, mergeByNewest(legacy, anon));
+      writeLocalBooksForKey(userKey, local);
+      try { localStorage.removeItem(LEGACY_KEY); } catch {}
+      try { localStorage.removeItem(storageKeyForUser(null)); } catch {}
+    }
+  } catch {}
+
+  // Background fetch from server and merge
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 2500);
+  fetch(`/api/books?ownerId=${encodeURIComponent(auth.id)}`, { signal: ctrl.signal, headers: { "x-user-id": auth.id } })
+    .then(async (r) => {
+      if (!r.ok) throw new Error("failed");
+      const raw = await r.text();
+      try {
+        const data = raw ? JSON.parse(raw) : {} as any;
+        const remote = Array.isArray((data as any)?.books) ? ((data as any).books as Book[]) : [];
+        const cur = readLocalBooksForKey(userKey);
+        const merged = mergeByNewest(cur, remote).map(ensureChapters);
+        writeLocalBooksForKey(userKey, merged);
+      } catch {}
+    })
+    .catch(() => {})
+    .finally(() => clearTimeout(t));
+
+  return local.map(ensureChapters);
 }
 
 export function saveBooks(books: Book[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+  const auth = getAuthUser();
+  const key = storageKeyForUser(auth ? auth.id : null);
+  writeLocalBooksForKey(key, books);
   // Sync to server only if logged in
   try {
-    const auth = getAuthUser();
     if (!auth) return;
     const payload = { books, ownerId: auth.id } as any;
     if (navigator.sendBeacon) {
@@ -200,6 +210,10 @@ export function duplicateBook(list: Book[], id: string): Book[] {
   saveBooks(next);
   return next;
 }
+
+const STORAGE_LAST_OPEN = "books:lastOpened";
+const STORAGE_RECENTS = "books:recent";
+const STORAGE_WRITE_DAYS = "books:write:days";
 
 export function setLastOpenedBookId(id: string | null) {
   if (!id) {
@@ -442,11 +456,9 @@ export function getBookWordCount(book: Book): number {
   return text.split(/\s+/).length;
 }
 
-
 function escapeXml(s: string): string {
   return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&apos;");
 }
-
 
 export function importBooksFromJSON(list: Book[], json: string): Book[] {
   try {

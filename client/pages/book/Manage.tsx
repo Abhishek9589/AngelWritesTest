@@ -56,6 +56,15 @@ export default function BookManage() {
   const [openDelete, setOpenDelete] = useState(false);
 
   useEffect(() => { saveBooks(books); }, [books]);
+  useEffect(() => {
+    const reload = () => setBooks(loadBooks());
+    window.addEventListener("aw-auth-changed", reload);
+    window.addEventListener("storage", reload);
+    return () => {
+      window.removeEventListener("aw-auth-changed", reload);
+      window.removeEventListener("storage", reload);
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     const base = books.filter((b) => matchesQuery(b, query));

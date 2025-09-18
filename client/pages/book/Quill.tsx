@@ -55,6 +55,15 @@ export default function BookQuill() {
   useEffect(() => {
     saveBooks(books);
   }, [books]);
+  useEffect(() => {
+    const reload = () => setBooks(loadBooks());
+    window.addEventListener("aw-auth-changed", reload);
+    window.addEventListener("storage", reload);
+    return () => {
+      window.removeEventListener("aw-auth-changed", reload);
+      window.removeEventListener("storage", reload);
+    };
+  }, []);
 
   // Load last opened book if navigated directly
   useEffect(() => {
@@ -231,7 +240,7 @@ export default function BookQuill() {
           <div className="grid gap-3">
             <Input ref={titleRef} defaultValue={current.title} placeholder="Title" />
             <Input ref={descRef} defaultValue={current.description || ""} placeholder="Short description" />
-            <Input ref={coverRef} defaultValue={current.cover || ""} placeholder="Cover image URL" />
+            <Input ref={coverRef} defaultValue={current.cover || ""} placeholder="Cover image URL or paste to upload" />
             <Input ref={genreRef} defaultValue={current.genre || ""} placeholder="Genre" />
             <Input ref={tagsRef} defaultValue={(current.tags || []).join(", ")} placeholder="Tags (comma-separated)" />
             <div>
@@ -250,7 +259,16 @@ export default function BookQuill() {
             <Button onClick={() => {
               const title = (titleRef.current?.value || current.title).toString();
               const description = (descRef.current?.value || current.description || "").toString();
-              const cover = (coverRef.current?.value || current.cover || "").toString() || null;
+              let cover = (coverRef.current?.value || current.cover || "").toString().trim() || null;
+              try {
+                if (cover && cover !== current.cover) {
+                  const { uploadCover } = await import("@/lib/uploads");
+                  cover = await uploadCover(cover);
+                }
+              } catch (e: any) {
+                const { toast } = await import("sonner");
+                toast.error(e?.message || "Cover upload failed");
+              }
               const genre = (genreRef.current?.value || current.genre || "").toString() || null;
               const tags = (tagsRef.current?.value || (current.tags || []).join(",")).split(",").map((t) => t.trim()).filter(Boolean);
               const selected = metaStatus ?? (current.completed ? "completed" : "draft");

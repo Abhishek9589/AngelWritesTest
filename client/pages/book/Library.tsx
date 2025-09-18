@@ -17,6 +17,7 @@ import {
   updateBook,
 } from "@/lib/books";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -70,6 +71,15 @@ export default function BookLibrary() {
   const [filterTags, setFilterTags] = useState<string>(() => localStorage.getItem("books:filter:tags") || "");
 
   useEffect(() => { saveBooks(books); }, [books]);
+  useEffect(() => {
+    const reload = () => setBooks(loadBooks());
+    window.addEventListener("aw-auth-changed", reload);
+    window.addEventListener("storage", reload);
+    return () => {
+      window.removeEventListener("aw-auth-changed", reload);
+      window.removeEventListener("storage", reload);
+    };
+  }, []);
 
   useEffect(() => { localStorage.setItem("books:sort", sort); }, [sort]);
   useEffect(() => { localStorage.setItem("books:filter:status", filterStatus); }, [filterStatus]);
@@ -259,7 +269,7 @@ export default function BookLibrary() {
           <div className="grid gap-3">
             <Input ref={titleRef} defaultValue={editing?.title || ""} placeholder="Title" />
             <Input ref={descRef} defaultValue={editing?.description || ""} placeholder="Short description" />
-            <Input ref={coverRef} defaultValue={editing?.cover || ""} placeholder="Cover image URL" />
+            <Input ref={coverRef} defaultValue={editing?.cover || ""} placeholder="Cover image URL or paste to upload" />
             <Input ref={genreRef} defaultValue={editing?.genre || ""} placeholder="Genre" />
             <Input ref={tagsRef} defaultValue={(editing?.tags || []).join(", ")} placeholder="Tags (comma-separated)" />
             <div>
@@ -279,7 +289,15 @@ export default function BookLibrary() {
               if (!editing) return;
               const title = (titleRef.current?.value || editing.title).toString();
               const description = (descRef.current?.value || editing.description).toString();
-              const cover = (coverRef.current?.value || editing.cover || "").toString() || null;
+              let cover = (coverRef.current?.value || editing.cover || "").toString().trim() || null;
+              try {
+                if (cover && cover !== editing.cover) {
+                  const { uploadCover } = await import("@/lib/uploads");
+                  cover = await uploadCover(cover);
+                }
+              } catch (e: any) {
+                toast.error(e?.message || "Cover upload failed");
+              }
               const genre = (genreRef.current?.value || editing.genre || "").toString() || null;
               const tags = (tagsRef.current?.value || (editing.tags || []).join(",")).split(",").map((t) => t.trim()).filter(Boolean);
               const selected = metaStatusLib ?? (editing.completed ? "completed" : "draft");

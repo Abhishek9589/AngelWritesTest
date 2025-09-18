@@ -119,13 +119,10 @@ function Layout() {
   }, [location.pathname]);
 
   return (
-    <div className={cn("min-h-screen", isEditMode ? "pt-6" : "pt-24") }>
+    <div className={cn("min-h-screen pt-24")}>
       <header
         className={cn(
-          "z-40 w-[min(1120px,95%)] rounded-2xl glass",
-          isEditMode
-            ? "relative mx-auto"
-            : "fixed top-4 left-1/2 -translate-x-1/2"
+          "z-40 w-[min(1120px,95%)] rounded-2xl glass fixed top-4 left-1/2 -translate-x-1/2"
         )}
       >
         <div className="flex h-14 items-center justify-between px-4">

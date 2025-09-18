@@ -4,6 +4,7 @@ import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { pingMongo } from "./lib/mongo";
 import { handleSignIn, handleSignUp, handleVerifySignup, handleChangePassword, handleForgotInit, handleForgotVerify, handleForgotReset } from "./routes/auth";
+import { handleUploadCover } from "./routes/upload";
 import { bulkUpsertPoems, bulkUpsertBooks, listPoems, listBooks } from "./routes/content";
 
 export function createServer() {
@@ -36,6 +37,9 @@ export function createServer() {
   app.get("/api/poems", listPoems);
   app.post("/api/books/bulk", bulkUpsertBooks);
   app.get("/api/books", listBooks);
+
+  // Uploads
+  app.post("/api/upload/cover", express.json({ limit: "15mb" }), handleUploadCover);
 
   // Database health check
   app.get("/api/db/ping", async (_req, res) => {
