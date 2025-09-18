@@ -256,7 +256,7 @@ export default function BookQuill() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMetaOpen(false)}>Cancel</Button>
-            <Button onClick={() => {
+            <Button onClick={async () => {
               const title = (titleRef.current?.value || current.title).toString();
               const description = (descRef.current?.value || current.description || "").toString();
               let cover = (coverRef.current?.value || current.cover || "").toString().trim() || null;

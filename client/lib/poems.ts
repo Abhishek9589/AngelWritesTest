@@ -85,8 +85,19 @@ function mergeByNewest(a: Poem[], b: Poem[]): Poem[] {
 export function loadPoems(): Poem[] {
   const auth = getAuthUser();
   if (!auth) {
-    // Hide all user data when logged out
-    return [];
+    // Read from anon storage and migrate any legacy keys into anon scope
+    const anonKey = storageKeyForUser(null);
+    let local = readLocalPoemsForKey(anonKey);
+    try {
+      let legacy: Poem[] = [];
+      for (const k of LEGACY_KEYS) legacy = mergeByNewest(legacy, readLocalPoemsForKey(k));
+      if (legacy.length) {
+        local = mergeByNewest(local, legacy);
+        writeLocalPoemsForKey(anonKey, local);
+        [...LEGACY_KEYS].forEach((k) => { try { localStorage.removeItem(k); } catch {} });
+      }
+    } catch {}
+    return local;
   }
 
   const userKey = storageKeyForUser(auth.id);

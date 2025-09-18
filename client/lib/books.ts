@@ -88,8 +88,18 @@ function mergeByNewest(a: Book[], b: Book[]): Book[] {
 export function loadBooks(): Book[] {
   const auth = getAuthUser();
   if (!auth) {
-    // Hide all user data when logged out
-    return [];
+    // Read anon books and migrate legacy into anon scope
+    const anonKey = storageKeyForUser(null);
+    let local = readLocalBooksForKey(anonKey);
+    try {
+      const legacy = readLocalBooksForKey(LEGACY_KEY);
+      if (legacy.length) {
+        local = mergeByNewest(local, legacy);
+        writeLocalBooksForKey(anonKey, local);
+        try { localStorage.removeItem(LEGACY_KEY); } catch {}
+      }
+    } catch {}
+    return local.map(ensureChapters);
   }
 
   const userKey = storageKeyForUser(auth.id);

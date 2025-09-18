@@ -45,17 +45,19 @@ import { LoadingScreen } from "@/components/ui/loading";
 import { POET_SARCASTIC_MESSAGES } from "@/lib/messages";
 import { loadPoems, savePoems } from "@/lib/poems";
 import { loadBooks, saveBooks } from "@/lib/books";
+import RouteErrorBoundary from "@/components/RouteErrorBoundary";
+import { retryImport } from "@/lib/lazy";
 
-const PoemDetail = lazy(() => import("./pages/PoemDetail"));
-const Favorites = lazy(() => import("./pages/Favorites"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Manage = lazy(() => import("./pages/Manage"));
-const JoinUs = lazy(() => import("./pages/JoinUs"));
+const PoemDetail = lazy(() => retryImport(() => import("./pages/PoemDetail")));
+const Favorites = lazy(() => retryImport(() => import("./pages/Favorites")));
+const Dashboard = lazy(() => retryImport(() => import("./pages/Dashboard")));
+const Manage = lazy(() => retryImport(() => import("./pages/Manage")));
+const JoinUs = lazy(() => retryImport(() => import("./pages/JoinUs")));
 
-const BookHome = lazy(() => import("./pages/book/Home"));
-const BookLibrary = lazy(() => import("./pages/book/Library"));
-const BookQuill = lazy(() => import("./pages/book/Quill"));
-const BookManage = lazy(() => import("./pages/book/Manage"));
+const BookHome = lazy(() => retryImport(() => import("./pages/book/Home")));
+const BookLibrary = lazy(() => retryImport(() => import("./pages/book/Library")));
+const BookQuill = lazy(() => retryImport(() => import("./pages/book/Quill")));
+const BookManage = lazy(() => retryImport(() => import("./pages/book/Manage")));
 
 const queryClient = new QueryClient();
 
@@ -222,20 +224,20 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<Index />} />
-              <Route path="poem/:id" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><PoemDetail /></Suspense>} />
-              <Route path="favorites" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Favorites /></Suspense>} />
-              <Route path="dashboard" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Dashboard /></Suspense>} />
-              <Route path="manage" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Manage /></Suspense>} />
-              <Route path="join-us" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><JoinUs /></Suspense>} />
+              <Route path="poem/:id" element={<RouteErrorBoundary><Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><PoemDetail /></Suspense></RouteErrorBoundary>} />
+              <Route path="favorites" element={<RouteErrorBoundary><Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Favorites /></Suspense></RouteErrorBoundary>} />
+              <Route path="dashboard" element={<RouteErrorBoundary><Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Dashboard /></Suspense></RouteErrorBoundary>} />
+              <Route path="manage" element={<RouteErrorBoundary><Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Manage /></Suspense></RouteErrorBoundary>} />
+              <Route path="join-us" element={<RouteErrorBoundary><Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><JoinUs /></Suspense></RouteErrorBoundary>} />
               <Route path="themes" element={<Navigate to="/manage" replace />} />
               <Route path="backup" element={<Navigate to="/manage" replace />} />
             </Route>
             <Route path="/book" element={<Layout />}>
-              <Route index element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookHome /></Suspense>} />
-              <Route path="library" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookLibrary /></Suspense>} />
-              <Route path="quill" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookQuill /></Suspense>} />
-              <Route path="manage" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookManage /></Suspense>} />
-              <Route path="join-us" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><JoinUs /></Suspense>} />
+              <Route index element={<RouteErrorBoundary><Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookHome /></Suspense></RouteErrorBoundary>} />
+              <Route path="library" element={<RouteErrorBoundary><Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookLibrary /></Suspense></RouteErrorBoundary>} />
+              <Route path="quill" element={<RouteErrorBoundary><Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookQuill /></Suspense></RouteErrorBoundary>} />
+              <Route path="manage" element={<RouteErrorBoundary><Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookManage /></Suspense></RouteErrorBoundary>} />
+              <Route path="join-us" element={<RouteErrorBoundary><Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><JoinUs /></Suspense></RouteErrorBoundary>} />
               <Route path="themes" element={<Navigate to="/book/manage" replace />} />
             </Route>
             <Route path="*" element={<NotFound />} />

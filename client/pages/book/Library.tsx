@@ -285,7 +285,7 @@ export default function BookLibrary() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button onClick={() => {
+            <Button onClick={async () => {
               if (!editing) return;
               const title = (titleRef.current?.value || editing.title).toString();
               const description = (descRef.current?.value || editing.description).toString();

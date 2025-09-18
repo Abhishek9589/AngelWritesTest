@@ -39,7 +39,7 @@ export function createServer() {
   app.get("/api/books", listBooks);
 
   // Uploads
-  app.post("/api/upload/cover", express.json({ limit: "15mb" }), handleUploadCover);
+  app.post("/api/upload/cover", express.json({ limit: "25mb" }), handleUploadCover);
 
   // Database health check
   app.get("/api/db/ping", async (_req, res) => {
