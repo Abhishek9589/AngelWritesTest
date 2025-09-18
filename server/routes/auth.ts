@@ -2,7 +2,7 @@ import type { RequestHandler } from "express";
 import { getDb } from "../lib/mongo";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import type { SignUpRequest, SignInRequest, AuthResponse } from "@shared/api";
+import type { SignUpRequest, SignInRequest, SignInResponse, GenericAuthResponse, ChangePasswordRequest, ForgotInitRequest, ForgotVerifyRequest, ForgotResetRequest } from "@shared/api";
 import { createMailer } from "../lib/mailer";
 
 const signUpSchema = z.object({
@@ -40,7 +40,7 @@ export const handleSignUp: RequestHandler = async (req, res) => {
     const users = db.collection("users");
     const exists = await users.findOne({ $or: [{ email: body.email.toLowerCase() }, { username: body.username }] });
     if (exists) {
-      const resp: AuthResponse = { ok: false, message: "User already exists" };
+      const resp: GenericAuthResponse = { ok: false, message: "User already exists" };
       return res.status(409).json(resp);
     }
 
@@ -77,9 +77,9 @@ export const handleSignUp: RequestHandler = async (req, res) => {
       return res.status(500).json({ ok: false, message: "Failed to send OTP" });
     }
 
-    res.json({ ok: true, message: "OTP sent" });
+    res.json({ ok: true, message: "OTP sent" } satisfies GenericAuthResponse);
   } catch (err: any) {
-    res.status(400).json({ ok: false, message: err?.message || "Invalid request" } satisfies AuthResponse);
+    res.status(400).json({ ok: false, message: err?.message || "Invalid request" } satisfies GenericAuthResponse);
   }
 };
 
@@ -116,9 +116,9 @@ export const handleVerifySignup: RequestHandler = async (req, res) => {
     await db.collection("auth_events").insertOne({ type: "signup_verified", userId: r.insertedId, ts: now });
     await db.collection("signup_otps").deleteOne({ _id: pending._id });
 
-    res.json({ ok: true, userId: String(r.insertedId) } satisfies AuthResponse);
+    res.json({ ok: true, message: "Signup verified" } satisfies GenericAuthResponse);
   } catch (err: any) {
-    res.status(400).json({ ok: false, message: err?.message || "Invalid request" } satisfies AuthResponse);
+    res.status(400).json({ ok: false, message: err?.message || "Invalid request" } satisfies GenericAuthResponse);
   }
 };
 
@@ -129,13 +129,140 @@ export const handleSignIn: RequestHandler = async (req, res) => {
     const users = db.collection("users");
     const q = body.identifier.includes("@") ? { email: body.identifier.toLowerCase() } : { username: body.identifier };
     const user = await users.findOne(q);
-    if (!user) return res.status(401).json({ ok: false, message: "Invalid credentials" } satisfies AuthResponse);
+    if (!user) return res.status(401).json({ ok: false, message: "Invalid credentials" } satisfies SignInResponse);
     const ok = await bcrypt.compare(body.password, user.passwordHash || "");
     const now = new Date();
     await db.collection("auth_events").insertOne({ type: "signin", userId: user._id, ts: now, ok });
-    if (!ok) return res.status(401).json({ ok: false, message: "Invalid credentials" } satisfies AuthResponse);
-    res.json({ ok: true, userId: String(user._id) } satisfies AuthResponse);
+    if (!ok) return res.status(401).json({ ok: false, message: "Invalid credentials" } satisfies SignInResponse);
+    res.json({ ok: true, user: { id: String(user._id), username: user.username, email: user.email } } satisfies SignInResponse);
   } catch (err: any) {
-    res.status(400).json({ ok: false, message: err?.message || "Invalid request" } satisfies AuthResponse);
+    res.status(400).json({ ok: false, message: err?.message || "Invalid request" } satisfies SignInResponse);
+  }
+};
+
+const changePasswordSchema = z.object({
+  identifier: z.string().min(1),
+  currentPassword: z.string().min(6).max(200),
+  newPassword: z.string().min(6).max(200),
+});
+
+export const handleChangePassword: RequestHandler = async (req, res) => {
+  try {
+    const body: ChangePasswordRequest = changePasswordSchema.parse(req.body);
+    const db = await getDb();
+    const users = db.collection("users");
+    const q = body.identifier.includes("@") ? { email: body.identifier.toLowerCase() } : { username: body.identifier };
+    const user = await users.findOne(q);
+    if (!user) return res.status(404).json({ ok: false, message: "User not found" } satisfies GenericAuthResponse);
+
+    const ok = await bcrypt.compare(body.currentPassword, user.passwordHash || "");
+    if (!ok) return res.status(401).json({ ok: false, message: "Current password is incorrect" } satisfies GenericAuthResponse);
+
+    const newHash = await bcrypt.hash(body.newPassword, 10);
+    const now = new Date();
+    await users.updateOne({ _id: user._id }, { $set: { passwordHash: newHash, updatedAt: now } });
+    await db.collection("auth_events").insertOne({ type: "password_change", userId: user._id, ts: now });
+
+    res.json({ ok: true, message: "Password updated" } satisfies GenericAuthResponse);
+  } catch (err: any) {
+    res.status(400).json({ ok: false, message: err?.message || "Invalid request" } satisfies GenericAuthResponse);
+  }
+};
+
+const forgotInitSchema = z.object({ identifier: z.string().min(1) });
+const forgotVerifySchema = z.object({ identifier: z.string().min(1), code: z.string().regex(/^\d{6}$/) });
+const forgotResetSchema = z.object({ identifier: z.string().min(1), code: z.string().regex(/^\d{6}$/), newPassword: z.string().min(6).max(200) });
+
+async function findEmailByIdentifier(identifier: string): Promise<string | null> {
+  const db = await getDb();
+  const users = db.collection("users");
+  if (identifier.includes("@")) {
+    const u = await users.findOne({ email: identifier.toLowerCase() });
+    return u ? u.email : null;
+  }
+  const u = await users.findOne({ username: identifier });
+  return u ? u.email : null;
+}
+
+export const handleForgotInit: RequestHandler = async (req, res) => {
+  try {
+    const body: ForgotInitRequest = forgotInitSchema.parse(req.body);
+    const email = await findEmailByIdentifier(body.identifier);
+    const isEmail = body.identifier.includes("@");
+    if (!email) {
+      return res.status(404).json({ ok: false, message: isEmail ? "No email found." : "No username found." });
+    }
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
+    const code = generateOtp();
+    const codeHash = await bcrypt.hash(code, 8);
+
+    const db = await getDb();
+    await db.collection("forgot_otps").updateOne(
+      { email: email.toLowerCase() },
+      { $set: { email: email.toLowerCase(), codeHash, expiresAt, attempts: 0, updatedAt: now, createdAt: now } },
+      { upsert: true }
+    );
+
+    try {
+      const mailer = createMailer();
+      await mailer.sendOtp(email, code);
+    } catch (mailErr) {
+      return res.status(500).json({ ok: false, message: "Failed to send OTP" });
+    }
+
+    res.json({ ok: true, message: "OTP sent" });
+  } catch (err: any) {
+    res.status(400).json({ ok: false, message: err?.message || "Invalid request" });
+  }
+};
+
+export const handleForgotVerify: RequestHandler = async (req, res) => {
+  try {
+    const body: ForgotVerifyRequest = forgotVerifySchema.parse(req.body);
+    const email = await findEmailByIdentifier(body.identifier);
+    if (!email) return res.status(404).json({ ok: false, message: "No account found" });
+
+    const db = await getDb();
+    const pending = await db.collection("forgot_otps").findOne({ email: email.toLowerCase() });
+    if (!pending) return res.status(400).json({ ok: false, message: "No pending request" });
+    if (pending.expiresAt && new Date(pending.expiresAt) < new Date()) return res.status(400).json({ ok: false, message: "Invalid or expired OTP." });
+
+    const ok = await bcrypt.compare(body.code, pending.codeHash || "");
+    if (!ok) {
+      await db.collection("forgot_otps").updateOne({ _id: pending._id }, { $inc: { attempts: 1 }, $set: { updatedAt: new Date() } });
+      return res.status(401).json({ ok: false, message: "Invalid or expired OTP." });
+    }
+
+    res.json({ ok: true, message: "OTP verified" });
+  } catch (err: any) {
+    res.status(400).json({ ok: false, message: err?.message || "Invalid request" });
+  }
+};
+
+export const handleForgotReset: RequestHandler = async (req, res) => {
+  try {
+    const body: ForgotResetRequest = forgotResetSchema.parse(req.body);
+    const email = await findEmailByIdentifier(body.identifier);
+    if (!email) return res.status(404).json({ ok: false, message: "No account found" });
+
+    const db = await getDb();
+    const pending = await db.collection("forgot_otps").findOne({ email: email.toLowerCase() });
+    if (!pending) return res.status(400).json({ ok: false, message: "No pending request" });
+    if (pending.expiresAt && new Date(pending.expiresAt) < new Date()) return res.status(400).json({ ok: false, message: "Invalid or expired OTP." });
+
+    const ok = await bcrypt.compare(body.code, pending.codeHash || "");
+    if (!ok) return res.status(401).json({ ok: false, message: "Invalid or expired OTP." });
+
+    const users = db.collection("users");
+    const newHash = await bcrypt.hash(body.newPassword, 10);
+    const now = new Date();
+    await users.updateOne({ email: email.toLowerCase() }, { $set: { passwordHash: newHash, updatedAt: now } });
+    await db.collection("auth_events").insertOne({ type: "password_reset_forgot", email: email.toLowerCase(), ts: now });
+    await db.collection("forgot_otps").deleteOne({ _id: pending._id });
+
+    res.json({ ok: true, message: "Password changed successfully." });
+  } catch (err: any) {
+    res.status(400).json({ ok: false, message: err?.message || "Invalid request" });
   }
 };

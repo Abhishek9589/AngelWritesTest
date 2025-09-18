@@ -4,11 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LogIn, PenLine } from "lucide-react";
+import { LogIn, PenLine, KeyRound, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
-function SignInForm() {
+type AuthUser = { id: string; username: string; email: string };
+
+function SignInForm({ onSignedIn }: { onSignedIn: (user: AuthUser) => void }) {
   const [loading, setLoading] = React.useState(false);
+  const identRef = React.useRef<HTMLInputElement>(null);
+  const [fpOpen, setFpOpen] = React.useState(false);
+  const [fpStep, setFpStep] = React.useState<"otp" | "reset">("otp");
+  const [fpLoading, setFpLoading] = React.useState(false);
+  const otpRef = React.useRef<HTMLInputElement>(null);
+  const newPassRef = React.useRef<HTMLInputElement>(null);
+  const confirmPassRef = React.useRef<HTMLInputElement>(null);
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -23,7 +33,10 @@ function SignInForm() {
       const raw = await r.clone().text();
       let data: any = {};
       try { data = raw ? JSON.parse(raw) : {}; } catch {}
-      if (!r.ok || data?.ok === false) throw new Error(data?.message || "Sign in failed");
+      if (!r.ok || data?.ok === false || !data?.user) throw new Error(data?.message || "Sign in failed");
+      const user: AuthUser = data.user;
+      localStorage.setItem("aw.auth", JSON.stringify(user));
+      onSignedIn(user);
       toast.success("Signed in");
     } catch (err) {
       toast.error(String((err as any)?.message || err));
@@ -31,21 +44,132 @@ function SignInForm() {
       setLoading(false);
     }
   }
+
   return (
-    <form className="space-y-4" onSubmit={onSubmit}>
-      <div className="space-y-2">
-        <Label htmlFor="signin-identifier">Email or Username</Label>
-        <Input id="signin-identifier" name="identifier" type="text" autoComplete="username" placeholder="you@domain.com or your handle" />
-      </div>
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="signin-password">Password</Label>
-          <Button type="button" variant="link" className="px-0 text-xs text-foreground/70 hover:text-foreground">Forgot password?</Button>
+    <>
+      <form className="space-y-4" onSubmit={onSubmit}>
+        <div className="space-y-2">
+          <Label htmlFor="signin-identifier">Email or Username</Label>
+          <Input id="signin-identifier" name="identifier" ref={identRef} type="text" autoComplete="username" placeholder="you@domain.com or your handle" />
         </div>
-        <Input id="signin-password" name="password" type="password" autoComplete="current-password" placeholder="••••••••" />
-      </div>
-      <Button type="submit" className="w-full" disabled={loading}>{loading ? "Signing in…" : "Continue"}</Button>
-    </form>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="signin-password">Password</Label>
+            <Button
+              type="button"
+              variant="link"
+              className="px-0 text-xs text-foreground/70 hover:text-foreground"
+              onClick={async () => {
+                const identifier = String(identRef.current?.value || "").trim();
+                if (!identifier) { toast.error("Please enter your username or email."); return; }
+                setFpLoading(true);
+                try {
+                  const r = await fetch("/api/auth/forgot/init", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier }) });
+                  const raw = await r.clone().text();
+                  let data: any = {}; try { data = raw ? JSON.parse(raw) : {}; } catch {}
+                  if (!r.ok || data?.ok === false) {
+                    const msg = data?.message || (identifier.includes("@") ? "No email found." : "No username found.");
+                    throw new Error(msg);
+                  }
+                  toast.success("OTP sent to your email");
+                  setFpStep("otp");
+                  setFpOpen(true);
+                } catch (err) {
+                  toast.error(String((err as any)?.message || err));
+                } finally {
+                  setFpLoading(false);
+                }
+              }}
+            >
+              Forgot password?
+            </Button>
+          </div>
+          <Input id="signin-password" name="password" type="password" autoComplete="current-password" placeholder="••••••••" />
+        </div>
+        <Button type="submit" className="w-full" disabled={loading}>{loading ? "Signing in…" : "Continue"}</Button>
+      </form>
+
+      <Dialog open={fpOpen} onOpenChange={setFpOpen}>
+        <DialogContent titleText={fpStep === "otp" ? "Verify OTP" : "Reset Password"}>
+          <DialogHeader>
+            <DialogTitle>{fpStep === "otp" ? "OTP Verification" : "Set a new password"}</DialogTitle>
+            <DialogDescription>
+              {fpStep === "otp" ? "Enter the 6-digit code sent to your email." : "Choose a strong password and confirm it."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {fpStep === "otp" ? (
+            <div className="space-y-3">
+              <Label htmlFor="fp-otp">Enter OTP</Label>
+              <Input id="fp-otp" ref={otpRef} inputMode="numeric" pattern="\\d*" placeholder="6-digit code" />
+              <Button
+                className="w-full"
+                disabled={fpLoading}
+                onClick={async () => {
+                  const identifier = String(identRef.current?.value || "").trim();
+                  const code = String(otpRef.current?.value || "").trim();
+                  if (!code) return;
+                  setFpLoading(true);
+                  try {
+                    const r = await fetch("/api/auth/forgot/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier, code }) });
+                    const raw = await r.clone().text();
+                    let data: any = {}; try { data = raw ? JSON.parse(raw) : {}; } catch {}
+                    if (!r.ok || data?.ok === false) throw new Error(data?.message || "Invalid or expired OTP.");
+                    toast.success("OTP verified");
+                    setFpStep("reset");
+                  } catch (err) {
+                    toast.error(String((err as any)?.message || err));
+                  } finally {
+                    setFpLoading(false);
+                  }
+                }}
+              >
+                {fpLoading ? "Verifying…" : "Verify"}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="fp-new">New Password</Label>
+                <Input id="fp-new" ref={newPassRef} type="password" autoComplete="new-password" placeholder="Create a strong password" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fp-confirm">Confirm Password</Label>
+                <Input id="fp-confirm" ref={confirmPassRef} type="password" autoComplete="new-password" placeholder="Repeat password" />
+              </div>
+              <Button
+                className="w-full"
+                disabled={fpLoading}
+                onClick={async () => {
+                  const identifier = String(identRef.current?.value || "").trim();
+                  const code = String(otpRef.current?.value || "").trim();
+                  const newPassword = String(newPassRef.current?.value || "").trim();
+                  const confirm = String(confirmPassRef.current?.value || "").trim();
+                  if (!newPassword || !confirm) return;
+                  if (newPassword !== confirm) { toast.error("Passwords do not match."); return; }
+                  if (newPassword.length < 6) { toast.error("Password must be at least 6 characters."); return; }
+                  setFpLoading(true);
+                  try {
+                    const r = await fetch("/api/auth/forgot/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier, code, newPassword }) });
+                    const raw = await r.clone().text();
+                    let data: any = {}; try { data = raw ? JSON.parse(raw) : {}; } catch {}
+                    if (!r.ok || data?.ok === false) throw new Error(data?.message || "Failed to reset password");
+                    toast.success("Password changed successfully.");
+                    setFpOpen(false);
+                  } catch (err) {
+                    toast.error(String((err as any)?.message || err));
+                  } finally {
+                    setFpLoading(false);
+                  }
+                }}
+              >
+                {fpLoading ? "Updating…" : "Update Password"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -137,8 +261,65 @@ function SignUpForm({ onCompleted }: { onCompleted?: () => void }) {
   );
 }
 
+function AccountPanel({ user, onSignOff }: { user: AuthUser; onSignOff: () => void }) {
+  const [loading, setLoading] = React.useState(false);
+  async function onChangePassword(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formEl = e.currentTarget;
+    const fd = new FormData(formEl);
+    const currentPassword = String(fd.get("currentPassword") || "");
+    const newPassword = String(fd.get("newPassword") || "");
+    if (!currentPassword || !newPassword) return;
+    setLoading(true);
+    try {
+      const identifier = user.email || user.username;
+      const r = await fetch("/api/auth/password/change", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier, currentPassword, newPassword }) });
+      const raw = await r.clone().text();
+      let data: any = {}; try { data = raw ? JSON.parse(raw) : {}; } catch {}
+      if (!r.ok || data?.ok === false) throw new Error(data?.message || "Failed to update password");
+      toast.success("Password updated");
+      formEl.reset();
+    } catch (err) {
+      toast.error(String((err as any)?.message || err));
+    } finally {
+      setLoading(false);
+    }
+  }
+  return (
+    <div className="space-y-5">
+      <div className="rounded-2xl p-4 border border-white/20 dark:border-white/10 bg-white/50 dark:bg-white/5">
+        <div className="font-semibold">Signed in</div>
+        <div className="mt-1 text-sm text-muted-foreground">Welcome back, {user.username}.</div>
+        <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
+          <div><span className="text-muted-foreground">Email:</span> {user.email}</div>
+          <div><span className="text-muted-foreground">Pen Name:</span> {user.username}</div>
+        </div>
+      </div>
+      <div className="rounded-2xl p-4 border border-white/20 dark:border-white/10 bg-white/50 dark:bg-white/5">
+        <div className="flex items-center gap-2 font-semibold"><KeyRound className="h-4 w-4" /> Change Password</div>
+        <form className="mt-3 space-y-3" onSubmit={onChangePassword}>
+          <div className="space-y-2">
+            <Label htmlFor="currentPassword">Current password</Label>
+            <Input id="currentPassword" name="currentPassword" type="password" autoComplete="current-password" placeholder="••••••••" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="newPassword">New password</Label>
+            <Input id="newPassword" name="newPassword" type="password" autoComplete="new-password" placeholder="Choose a strong password" />
+          </div>
+          <Button type="submit" disabled={loading} className="w-full">{loading ? "Updating…" : "Update Password"}</Button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function JoinUs() {
-  const [mode, setMode] = React.useState<"signin" | "signup">("signin");
+  const [mode, setMode] = React.useState<"signin" | "signup">("signup");
+  const [user, setUser] = React.useState<AuthUser | null>(() => {
+    try { return JSON.parse(localStorage.getItem("aw.auth") || "null"); } catch { return null; }
+  });
+  const handleSignedIn = (u: AuthUser) => setUser(u);
+  const handleSignOff = () => { localStorage.removeItem("aw.auth"); setUser(null); };
 
   return (
     <main className="container py-10 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
@@ -147,39 +328,51 @@ export default function JoinUs() {
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight gradient-text">Join Us</h1>
           <p className="mt-2 max-w-xl text-sm md:text-base text-muted-foreground">Become part of our community. Get early features, share feedback, and help shape the future of AngelWrites.</p>
 
-          <div className="mt-6">
-            <ToggleGroup
-              className="inline-flex rounded-full glass p-1 gap-1 ring-1 ring-white/25 dark:ring-white/10"
-              type="single"
-              value={mode}
-              onValueChange={(v) => v && setMode(v as typeof mode)}
-              size="sm"
-              aria-label="Choose how you want to proceed"
-            >
-              <ToggleGroupItem
-                value="signin"
-                aria-label="Continue Writing"
-                className="rounded-full h-9 px-4 md:h-10 md:px-5 font-medium text-foreground/90 hover:bg-white/40 dark:hover:bg-white/10 hover:text-foreground border border-transparent data-[state=on]:shadow-md data-[state=on]:ring-1 data-[state=on]:ring-white/30"
-              >
-                <LogIn className="mr-2 h-4 w-4" /> Continue Writing
-              </ToggleGroupItem>
-              <ToggleGroupItem
-                value="signup"
-                aria-label="Start Writing"
-                className="rounded-full h-9 px-4 md:h-10 md:px-5 font-medium text-foreground/90 hover:bg-white/40 dark:hover:bg-white/10 hover:text-foreground border border-transparent data-[state=on]:shadow-md data-[state=on]:ring-1 data-[state=on]:ring-white/30"
-              >
-                <PenLine className="mr-2 h-4 w-4" /> Start Writing
-              </ToggleGroupItem>
-            </ToggleGroup>
+          {user && (
+            <div className="mt-6">
+              <Button onClick={handleSignOff} variant="secondary" className="gap-2"><LogOut className="h-4 w-4" /> Sign Off</Button>
+            </div>
+          )}
 
-            <p className="mt-3 text-xs text-muted-foreground">
-              {mode === "signin" ? "Returning author? Pick up where you left off." : "New to AngelWrites? Create your space and begin."}
-            </p>
-          </div>
+          {!user && (
+            <div className="mt-6">
+              <ToggleGroup
+                className="inline-flex rounded-full glass p-1 gap-1 ring-1 ring-white/25 dark:ring-white/10"
+                type="single"
+                value={mode}
+                onValueChange={(v) => v && setMode(v as typeof mode)}
+                size="sm"
+                aria-label="Choose how you want to proceed"
+              >
+                <ToggleGroupItem
+                  value="signup"
+                  aria-label="Start Writing"
+                  className="rounded-full h-9 px-4 md:h-10 md:px-5 font-medium text-foreground/90 hover:bg-white/40 dark:hover:bg-white/10 hover:text-foreground border border-transparent data-[state=on]:shadow-md data-[state=on]:ring-1 data-[state=on]:ring-white/30"
+                >
+                  <PenLine className="mr-2 h-4 w-4" /> Start Writing
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="signin"
+                  aria-label="Continue Writing"
+                  className="rounded-full h-9 px-4 md:h-10 md:px-5 font-medium text-foreground/90 hover:bg-white/40 dark:hover:bg-white/10 hover:text-foreground border border-transparent data-[state=on]:shadow-md data-[state=on]:ring-1 data-[state=on]:ring-white/30"
+                >
+                  <LogIn className="mr-2 h-4 w-4" /> Continue Writing
+                </ToggleGroupItem>
+              </ToggleGroup>
+
+              <p className="mt-3 text-xs text-muted-foreground">
+                {mode === "signin" ? "Returning author? Pick up where you left off." : "New to AngelWrites? Create your space and begin."}
+              </p>
+            </div>
+          )}
         </section>
 
         <div className="w-full max-w-md mx-auto md:ml-auto rounded-3xl glass p-6 md:p-8">
-          {mode === "signin" ? <SignInForm /> : <SignUpForm onCompleted={() => setMode("signin")} />}
+          {user ? (
+            <AccountPanel user={user} onSignOff={handleSignOff} />
+          ) : (
+            mode === "signin" ? <SignInForm onSignedIn={handleSignedIn} /> : <SignUpForm onCompleted={() => setMode("signin")} />
+          )}
         </div>
       </div>
     </main>

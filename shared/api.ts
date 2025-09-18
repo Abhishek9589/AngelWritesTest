@@ -21,11 +21,36 @@ export interface SignInRequest {
   identifier: string; // email or username
   password: string;
 }
-export interface AuthResponse {
+export interface UserPublic {
+  id: string;
+  username: string;
+  email: string;
+}
+export interface SignInResponse {
   ok: boolean;
-  userId?: string;
+  user?: UserPublic;
   message?: string;
 }
+export interface GenericAuthResponse {
+  ok: boolean;
+  message?: string;
+}
+export interface ChangePasswordRequest {
+  identifier: string; // email or username
+  currentPassword: string;
+  newPassword: string;
+}
+export interface ChangePasswordResponse {
+  ok: boolean;
+  message?: string;
+}
+
+export interface ForgotInitRequest { identifier: string }
+export interface ForgotInitResponse { ok: boolean; message?: string }
+export interface ForgotVerifyRequest { identifier: string; code: string }
+export interface ForgotVerifyResponse { ok: boolean; message?: string }
+export interface ForgotResetRequest { identifier: string; code: string; newPassword: string }
+export interface ForgotResetResponse { ok: boolean; message?: string }
 
 // ---- Poems ----
 export interface PoemDTO {
