@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: angelwrites-api
+    env: node
+    buildCommand: pnpm install --frozen-lockfile && pnpm build:server
+    startCommand: node dist/server/node-build.mjs
+    autoDeploy: true

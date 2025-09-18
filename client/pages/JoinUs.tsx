@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LogIn, PenLine, KeyRound, LogOut } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 
 function friendlyError(err: unknown, fallback: string): string {
@@ -38,7 +39,7 @@ function SignInForm({ onSignedIn }: { onSignedIn: (user: AuthUser) => void }) {
     if (!payload.identifier || !payload.password) return;
     setLoading(true);
     try {
-      const r = await fetch("/api/auth/signin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const r = await apiFetch("/api/auth/signin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const raw = await r.text();
       let data: any = {};
       try { data = raw ? JSON.parse(raw) : {}; } catch {}
@@ -77,7 +78,7 @@ function SignInForm({ onSignedIn }: { onSignedIn: (user: AuthUser) => void }) {
                 setFpStep("otp");
                 setFpLoading(true);
                 try {
-                  const r = await fetch("/api/auth/forgot/init", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier }) });
+                  const r = await apiFetch("/api/auth/forgot/init", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier }) });
                   const raw = await r.text();
                   let data: any = {}; try { data = raw ? JSON.parse(raw) : {}; } catch {}
                   if (!r.ok || data?.ok === false) {
@@ -123,7 +124,7 @@ function SignInForm({ onSignedIn }: { onSignedIn: (user: AuthUser) => void }) {
                   if (!code) return;
                   setFpLoading(true);
                   try {
-                    const r = await fetch("/api/auth/forgot/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier, code }) });
+                    const r = await apiFetch("/api/auth/forgot/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier, code }) });
                     const raw = await r.text();
                     let data: any = {}; try { data = raw ? JSON.parse(raw) : {}; } catch {}
                     if (!r.ok || data?.ok === false) throw new Error(data?.message || "Invalid or expired OTP.");
@@ -158,7 +159,7 @@ function SignInForm({ onSignedIn }: { onSignedIn: (user: AuthUser) => void }) {
                   if (newPassword.length < 6) { toast.error("Password must be at least 6 characters."); return; }
                   setFpLoading(true);
                   try {
-                    const r = await fetch("/api/auth/forgot/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier, code, newPassword }) });
+                    const r = await apiFetch("/api/auth/forgot/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier, code, newPassword }) });
                     const raw = await r.text();
                     let data: any = {}; try { data = raw ? JSON.parse(raw) : {}; } catch {}
                     if (!r.ok || data?.ok === false) throw new Error(data?.message || "Failed to reset password");
@@ -192,7 +193,7 @@ function SignUpForm({ onCompleted }: { onCompleted?: () => void }) {
     if (!code) return;
     setLoading(true);
     try {
-      const r = await fetch("/api/auth/signup/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, code }) });
+      const r = await apiFetch("/api/auth/signup/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, code }) });
       const raw = await r.text();
       let data: any = {};
       try { data = raw ? JSON.parse(raw) : {}; } catch {}
@@ -218,7 +219,7 @@ function SignUpForm({ onCompleted }: { onCompleted?: () => void }) {
     if (!payload.username || !payload.email || !payload.password) return;
     setLoading(true);
     try {
-      const r = await fetch("/api/auth/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const r = await apiFetch("/api/auth/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const raw = await r.text();
       let data: any = {};
       try { data = raw ? JSON.parse(raw) : {}; } catch {}
@@ -281,7 +282,7 @@ function AccountPanel({ user, onSignOff }: { user: AuthUser; onSignOff: () => vo
     setLoading(true);
     try {
       const identifier = user.email || user.username;
-      const r = await fetch("/api/auth/password/change", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier, currentPassword, newPassword }) });
+      const r = await apiFetch("/api/auth/password/change", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier, currentPassword, newPassword }) });
       const raw = await r.text();
       let data: any = {}; try { data = raw ? JSON.parse(raw) : {}; } catch {}
       if (!r.ok || data?.ok === false) throw new Error(data?.message || "Failed to update password");
@@ -327,7 +328,7 @@ export default function JoinUs() {
     try { return JSON.parse(localStorage.getItem("aw.auth") || "null"); } catch { return null; }
   });
   const handleSignedIn = (u: AuthUser) => setUser(u);
-  const handleSignOff = () => { fetch("/api/auth/signout", { method: "POST" }).catch(() => {}); localStorage.removeItem("aw.auth"); try { window.dispatchEvent(new Event("aw-auth-changed")); } catch {} setUser(null); };
+  const handleSignOff = () => { apiFetch("/api/auth/signout", { method: "POST" }).catch(() => {}); localStorage.removeItem("aw.auth"); try { window.dispatchEvent(new Event("aw-auth-changed")); } catch {} setUser(null); };
 
   return (
     <main className="container py-10 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">

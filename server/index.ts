@@ -10,7 +10,16 @@ export function createServer() {
   const app = express();
 
   // Middleware
-  app.use(cors());
+  const origins = (process.env.CORS_ORIGINS || "").split(",").map((s) => s.trim()).filter(Boolean);
+  app.use(cors({
+    origin(origin, cb) {
+      if (!origin) return cb(null, true);
+      if (!origins.length) return cb(null, true);
+      if (origins.includes(origin)) return cb(null, true);
+      return cb(new Error("CORS not allowed"), false as any);
+    },
+    credentials: true,
+  }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -37,6 +46,9 @@ export function createServer() {
   app.get("/api/poems", listPoems);
   app.post("/api/books/bulk", bulkUpsertBooks);
   app.get("/api/books", listBooks);
+
+  // Health check for Render
+  app.get("/health", (_req, res) => res.json({ ok: true }));
 
   // Database health check
   app.get("/api/db/ping", async (_req, res) => {

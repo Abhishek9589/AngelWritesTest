@@ -61,12 +61,15 @@ export function readCookie(req: Request, name: string): string | null {
 }
 
 export function setAuthCookie(res: Response, token: string, maxAgeSec: number) {
-  const secure = (process.env.NODE_ENV || "").toLowerCase() === "production";
+  const env = (process.env.NODE_ENV || "").toLowerCase();
+  const sameSite = ((process.env.AUTH_COOKIE_SAMESITE || "Lax").toLowerCase() === "none") ? "None" : "Lax";
+  const mustSecure = sameSite === "None";
+  const secure = mustSecure || env === "production";
   const cookie = [
     `aw.access=${encodeURIComponent(token)}`,
     `Path=/`,
     `HttpOnly`,
-    `SameSite=Lax`,
+    `SameSite=${sameSite}`,
     `Max-Age=${Math.max(1, Math.floor(maxAgeSec))}`,
     secure ? "Secure" : "",
   ].filter(Boolean).join("; ");
@@ -74,12 +77,15 @@ export function setAuthCookie(res: Response, token: string, maxAgeSec: number) {
 }
 
 export function clearAuthCookie(res: Response) {
-  const secure = (process.env.NODE_ENV || "").toLowerCase() === "production";
+  const env = (process.env.NODE_ENV || "").toLowerCase();
+  const sameSite = ((process.env.AUTH_COOKIE_SAMESITE || "Lax").toLowerCase() === "none") ? "None" : "Lax";
+  const mustSecure = sameSite === "None";
+  const secure = mustSecure || env === "production";
   const cookie = [
     `aw.access=`,
     `Path=/`,
     `HttpOnly`,
-    `SameSite=Lax`,
+    `SameSite=${sameSite}`,
     `Max-Age=0`,
     secure ? "Secure" : "",
   ].filter(Boolean).join("; ");

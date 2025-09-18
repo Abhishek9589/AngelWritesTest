@@ -82,6 +82,8 @@ function mergeByNewest(a: Poem[], b: Poem[]): Poem[] {
   return Array.from(map.values());
 }
 
+import { apiFetch, apiUrl } from "@/lib/api";
+
 export function loadPoems(): Poem[] {
   const auth = getAuthUser();
   if (!auth) {
@@ -121,7 +123,7 @@ export function loadPoems(): Poem[] {
   // Background sync from server and merge to local
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 2500);
-  fetch(`/api/poems`, { signal: ctrl.signal })
+  apiFetch(`/api/poems`, { signal: ctrl.signal })
     .then(async (r) => {
       if (!r.ok) throw new Error("failed");
       const raw = await r.text();
@@ -149,10 +151,10 @@ export function savePoems(poems: Poem[]) {
     if (!auth) return;
     const payload = { poems } as any;
     if (navigator.sendBeacon) {
-      const ok = navigator.sendBeacon("/api/poems/bulk", new Blob([JSON.stringify(payload)], { type: "application/json" }));
+      const ok = navigator.sendBeacon(apiUrl("/api/poems/bulk"), new Blob([JSON.stringify(payload)], { type: "application/json" }));
       if (!ok) throw new Error("beacon_failed");
     } else {
-      fetch("/api/poems/bulk", { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
+      apiFetch(apiUrl("/api/poems/bulk"), { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
     }
   } catch {}
 }
