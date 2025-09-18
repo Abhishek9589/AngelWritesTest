@@ -10,9 +10,11 @@ export function createServer() {
   const app = express();
 
   // Middleware
+  const isProd = (process.env.NODE_ENV || "").toLowerCase() === "production";
   const origins = (process.env.CORS_ORIGINS || "").split(",").map((s) => s.trim()).filter(Boolean);
   app.use(cors({
     origin(origin, cb) {
+      if (!isProd) return cb(null, true);
       if (!origin) return cb(null, true);
       if (!origins.length) return cb(null, true);
       if (origins.includes(origin)) return cb(null, true);

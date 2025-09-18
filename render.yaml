@@ -1,7 +1,7 @@
 services:
   - type: web
-    name: angelwrites-api
+    name: backend
     env: node
-    buildCommand: pnpm install --frozen-lockfile && pnpm build:server
-    startCommand: node dist/server/node-build.mjs
-    autoDeploy: true
+    plan: free
+    buildCommand: pnpm install --no-frozen-lockfile && pnpm build:server
+    startCommand: pnpm start
