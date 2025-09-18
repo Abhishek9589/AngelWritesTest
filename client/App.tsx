@@ -48,7 +48,7 @@ const PoemDetail = lazy(() => import("./pages/PoemDetail"));
 const Favorites = lazy(() => import("./pages/Favorites"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Manage = lazy(() => import("./pages/Manage"));
-const Themes = lazy(() => import("./pages/Themes"));
+const JoinUs = lazy(() => import("./pages/JoinUs"));
 
 const BookHome = lazy(() => import("./pages/book/Home"));
 const BookLibrary = lazy(() => import("./pages/book/Library"));
@@ -109,7 +109,7 @@ function Layout() {
                   <NavLink to="/book/library" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-transparent border border-transparent hover:border-black/20 dark:hover:border-white/25")}>Library</NavLink>
                   <NavLink to="/book/quill" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-transparent border border-transparent hover:border-black/20 dark:hover:border-white/25")}>Quill</NavLink>
                   <NavLink to="/book/manage" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-transparent border border-transparent hover:border-black/20 dark:hover:border-white/25")}>Manage</NavLink>
-                  <NavLink to="/book/themes" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-transparent border border-transparent hover:border-black/20 dark:hover:border-white/25")}>Themes</NavLink>
+                  <NavLink to="/book/join-us" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-transparent border border-transparent hover:border-black/20 dark:hover:border-white/25")}>Join Us</NavLink>
                 </>
               ) : (
                 <>
@@ -117,7 +117,7 @@ function Layout() {
                   <NavLink to="/favorites" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-transparent border border-transparent hover:border-black/20 dark:hover:border-white/25")}>Favorites</NavLink>
                   <NavLink to="/dashboard" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-transparent border border-transparent hover:border-black/20 dark:hover:border-white/25")}>Dashboard</NavLink>
                   <NavLink to="/manage" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-transparent border border-transparent hover:border-black/20 dark:hover:border-white/25")}>Manage</NavLink>
-                  <NavLink to="/themes" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-transparent border border-transparent hover:border-black/20 dark:hover:border-white/25")}>Themes</NavLink>
+                  <NavLink to="/join-us" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "ghost", size: "default" }), !isActive && "hover:bg-transparent border border-transparent hover:border-black/20 dark:hover:border-white/25")}>Join Us</NavLink>
                 </>
               )}
             </nav>
@@ -143,7 +143,7 @@ function Layout() {
                         <NavLink to="/book/manage" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "outline", size: "lg" }))}>Manage</NavLink>
                       </SheetClose>
                       <SheetClose asChild>
-                        <NavLink to="/book/themes" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "outline", size: "lg" }))}>Themes</NavLink>
+                        <NavLink to="/book/join-us" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "outline", size: "lg" }))}>Join Us</NavLink>
                       </SheetClose>
                     </>
                   ) : (
@@ -161,7 +161,7 @@ function Layout() {
                         <NavLink to="/manage" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "outline", size: "lg" }))}>Manage</NavLink>
                       </SheetClose>
                       <SheetClose asChild>
-                        <NavLink to="/themes" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "outline", size: "lg" }))}>Themes</NavLink>
+                        <NavLink to="/join-us" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? "default" : "outline", size: "lg" }))}>Join Us</NavLink>
                       </SheetClose>
                     </>
                   )}
@@ -190,7 +190,8 @@ const App = () => (
               <Route path="favorites" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Favorites /></Suspense>} />
               <Route path="dashboard" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Dashboard /></Suspense>} />
               <Route path="manage" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Manage /></Suspense>} />
-              <Route path="themes" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Themes /></Suspense>} />
+              <Route path="join-us" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><JoinUs /></Suspense>} />
+              <Route path="themes" element={<Navigate to="/manage" replace />} />
               <Route path="backup" element={<Navigate to="/manage" replace />} />
             </Route>
             <Route path="/book" element={<Layout />}>
@@ -198,7 +199,8 @@ const App = () => (
               <Route path="library" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookLibrary /></Suspense>} />
               <Route path="quill" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookQuill /></Suspense>} />
               <Route path="manage" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><BookManage /></Suspense>} />
-              <Route path="themes" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><Themes /></Suspense>} />
+              <Route path="join-us" element={<Suspense fallback={<LoadingScreen messages={POET_SARCASTIC_MESSAGES} />}><JoinUs /></Suspense>} />
+              <Route path="themes" element={<Navigate to="/book/manage" replace />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
