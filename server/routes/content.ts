@@ -50,14 +50,22 @@ export const bulkUpsertPoems: RequestHandler = async (req, res) => {
     if (ops.length) await db.collection("poems").bulkWrite(ops, { ordered: false });
     res.json({ ok: true, upserted: ops.length });
   } catch (err: any) {
-    res.status(400).json({ ok: false, message: err?.message || "Invalid request" });
+    // Do not crash when DB is unavailable; acknowledge request but not persisted
+    const body = (req.body || {}) as any;
+    const count = Array.isArray(body.poems) ? body.poems.length : 0;
+    res.json({ ok: false, upserted: 0, message: err?.message || "db_unavailable", received: count });
   }
 };
 
 export const listPoems: RequestHandler = async (_req, res) => {
-  const db = await getDb();
-  const items = await db.collection("poems").find({}, { projection: { _id: 0 } }).toArray();
-  res.json({ poems: items as PoemDTO[] });
+  try {
+    const db = await getDb();
+    const items = await db.collection("poems").find({}, { projection: { _id: 0 } }).toArray();
+    res.json({ poems: items as PoemDTO[] });
+  } catch (err: any) {
+    // Graceful fallback: no DB -> empty list
+    res.json({ poems: [] as PoemDTO[], error: err?.message || "db_unavailable" });
+  }
 };
 
 export const bulkUpsertBooks: RequestHandler = async (req, res) => {
@@ -69,12 +77,18 @@ export const bulkUpsertBooks: RequestHandler = async (req, res) => {
     if (ops.length) await db.collection("books").bulkWrite(ops, { ordered: false });
     res.json({ ok: true, upserted: ops.length });
   } catch (err: any) {
-    res.status(400).json({ ok: false, message: err?.message || "Invalid request" });
+    const body = (req.body || {}) as any;
+    const count = Array.isArray(body.books) ? body.books.length : 0;
+    res.json({ ok: false, upserted: 0, message: err?.message || "db_unavailable", received: count });
   }
 };
 
 export const listBooks: RequestHandler = async (_req, res) => {
-  const db = await getDb();
-  const items = await db.collection("books").find({}, { projection: { _id: 0 } }).toArray();
-  res.json({ books: items as BookDTO[] });
+  try {
+    const db = await getDb();
+    const items = await db.collection("books").find({}, { projection: { _id: 0 } }).toArray();
+    res.json({ books: items as BookDTO[] });
+  } catch (err: any) {
+    res.json({ books: [] as BookDTO[], error: err?.message || "db_unavailable" });
+  }
 };

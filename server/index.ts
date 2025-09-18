@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { pingMongo } from "./lib/mongo";
-import { handleSignIn, handleSignUp } from "./routes/auth";
+import { handleSignIn, handleSignUp, handleVerifySignup } from "./routes/auth";
 import { bulkUpsertPoems, bulkUpsertBooks, listPoems, listBooks } from "./routes/content";
 
 export function createServer() {
@@ -24,6 +24,7 @@ export function createServer() {
 
   // Auth
   app.post("/api/auth/signup", handleSignUp);
+  app.post("/api/auth/signup/verify", handleVerifySignup);
   app.post("/api/auth/signin", handleSignIn);
 
   // Content sync

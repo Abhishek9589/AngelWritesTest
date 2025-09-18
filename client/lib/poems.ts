@@ -46,11 +46,15 @@ export function loadPoems(): Poem[] {
     // Synchronous fallback to local immediately; also fire async refresh
     const local = readLocalPoems();
     fetch("/api/poems", { signal: ctrl.signal })
-      .then((r) => r.ok ? r.json() : Promise.reject(new Error("failed")))
-      .then((data) => {
-        if (Array.isArray(data?.poems)) {
-          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data.poems)); } catch {}
-        }
+      .then(async (r) => {
+        if (!r.ok) throw new Error("failed");
+        const raw = await r.clone().text();
+        try {
+          const data = raw ? JSON.parse(raw) : {};
+          if (Array.isArray((data as any)?.poems)) {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify((data as any).poems)); } catch {}
+          }
+        } catch {}
       })
       .catch(() => {});
     return local;

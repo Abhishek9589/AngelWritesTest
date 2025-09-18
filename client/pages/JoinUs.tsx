@@ -3,6 +3,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LogIn, PenLine } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,8 +20,10 @@ function SignInForm() {
     setLoading(true);
     try {
       const r = await fetch("/api/auth/signin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const data = await r.json();
-      if (!r.ok || !data.ok) throw new Error(data?.message || "Sign in failed");
+      const raw = await r.clone().text();
+      let data: any = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch {}
+      if (!r.ok || data?.ok === false) throw new Error(data?.message || "Sign in failed");
       toast.success("Signed in");
     } catch (err) {
       toast.error(String((err as any)?.message || err));
@@ -46,8 +49,32 @@ function SignInForm() {
   );
 }
 
-function SignUpForm() {
+function SignUpForm({ onCompleted }: { onCompleted?: () => void }) {
   const [loading, setLoading] = React.useState(false);
+  const [email, setEmail] = React.useState("");
+  const [otpOpen, setOtpOpen] = React.useState(false);
+  const codeRef = React.useRef<HTMLInputElement>(null);
+
+  async function handleVerify() {
+    const code = String(codeRef.current?.value || "").trim();
+    if (!code) return;
+    setLoading(true);
+    try {
+      const r = await fetch("/api/auth/signup/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, code }) });
+      const raw = await r.clone().text();
+      let data: any = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch {}
+      if (!r.ok || data?.ok === false) throw new Error(data?.message || "Verification failed");
+      toast.success("Account verified. You can sign in now.");
+      setOtpOpen(false);
+      onCompleted?.();
+    } catch (err) {
+      toast.error(String((err as any)?.message || err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -60,9 +87,13 @@ function SignUpForm() {
     setLoading(true);
     try {
       const r = await fetch("/api/auth/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const data = await r.json();
-      if (!r.ok || !data.ok) throw new Error(data?.message || "Sign up failed");
-      toast.success("Account created");
+      const raw = await r.clone().text();
+      let data: any = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch {}
+      if (!r.ok || data?.ok === false) throw new Error(data?.message || "Failed to send OTP");
+      setEmail(payload.email);
+      setOtpOpen(true);
+      toast.success("OTP sent to your email");
     } catch (err) {
       toast.error(String((err as any)?.message || err));
     } finally {
@@ -70,21 +101,39 @@ function SignUpForm() {
     }
   }
   return (
-    <form className="space-y-4" onSubmit={onSubmit}>
-      <div className="space-y-2">
-        <Label htmlFor="signup-username">Pen Name</Label>
-        <Input id="signup-username" name="username" type="text" autoComplete="username" placeholder="your-pen-name" />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="signup-email">Email</Label>
-        <Input id="signup-email" name="email" type="email" autoComplete="email" placeholder="you@domain.com" />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="signup-password">Password</Label>
-        <Input id="signup-password" name="password" type="password" autoComplete="new-password" placeholder="Create a strong password" />
-      </div>
-      <Button type="submit" className="w-full" disabled={loading}>{loading ? "Creating…" : "Create account"}</Button>
-    </form>
+    <>
+      <form className="space-y-4" onSubmit={onSubmit}>
+        <div className="space-y-2">
+          <Label htmlFor="signup-username">Pen Name</Label>
+          <Input id="signup-username" name="username" type="text" autoComplete="username" placeholder="your-pen-name" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="signup-email">Email</Label>
+          <Input id="signup-email" name="email" type="email" autoComplete="email" placeholder="you@domain.com" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="signup-password">Password</Label>
+          <Input id="signup-password" name="password" type="password" autoComplete="new-password" placeholder="Create a strong password" />
+        </div>
+        <Button type="submit" className="w-full" disabled={loading}>{loading ? "Sending OTP…" : "Create account"}</Button>
+      </form>
+
+      <Dialog open={otpOpen} onOpenChange={setOtpOpen}>
+        <DialogContent titleText="Verify your email">
+          <DialogHeader>
+            <DialogTitle>Verify your email</DialogTitle>
+            <DialogDescription>Enter the 6-digit code we sent to {email}.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="signup-code">Enter OTP</Label>
+            <Input id="signup-code" ref={codeRef} type="text" inputMode="numeric" pattern="\\d*" placeholder="6-digit code" />
+          </div>
+          <DialogFooter>
+            <Button onClick={handleVerify} disabled={loading} className="w-full">{loading ? "Verifying…" : "Verify"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -130,7 +179,7 @@ export default function JoinUs() {
         </section>
 
         <div className="w-full max-w-md mx-auto md:ml-auto rounded-3xl glass p-6 md:p-8">
-          {mode === "signin" ? <SignInForm /> : <SignUpForm />}
+          {mode === "signin" ? <SignInForm /> : <SignUpForm onCompleted={() => setMode("signin")} />}
         </div>
       </div>
     </main>

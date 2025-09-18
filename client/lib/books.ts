@@ -60,11 +60,15 @@ export function loadBooks(): Book[] {
   const t = setTimeout(() => ctrl.abort(), 2500);
   const local = readLocalBooks();
   fetch("/api/books", { signal: ctrl.signal })
-    .then((r) => r.ok ? r.json() : Promise.reject(new Error("failed")))
-    .then((data) => {
-      if (Array.isArray(data?.books)) {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data.books)); } catch {}
-      }
+    .then(async (r) => {
+      if (!r.ok) throw new Error("failed");
+      const raw = await r.clone().text();
+      try {
+        const data = raw ? JSON.parse(raw) : {} as any;
+        if (Array.isArray((data as any)?.books)) {
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify((data as any).books)); } catch {}
+        }
+      } catch {}
     })
     .catch(() => {});
   clearTimeout(t);
