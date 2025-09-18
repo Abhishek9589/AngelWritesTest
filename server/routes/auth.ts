@@ -79,8 +79,10 @@ export const handleSignUp: RequestHandler = async (req, res) => {
     try {
       const mailer = createMailer();
       await mailer.sendOtp(body.email, code);
-    } catch (mailErr) {
-      return res.status(500).json({ ok: false, message: "Failed to send OTP" });
+    } catch (mailErr: any) {
+      const status = (mailErr && typeof (mailErr as any).status === "number") ? (mailErr as any).status : 500;
+      const message = String((mailErr && (mailErr as any).message) || "Failed to send OTP");
+      return res.status(status).json({ ok: false, message });
     }
 
     res.json({ ok: true, message: "OTP sent" } satisfies GenericAuthResponse);
@@ -221,8 +223,10 @@ export const handleForgotInit: RequestHandler = async (req, res) => {
     try {
       const mailer = createMailer();
       await mailer.sendOtp(email, code);
-    } catch (mailErr) {
-      return res.status(500).json({ ok: false, message: "Failed to send OTP" });
+    } catch (mailErr: any) {
+      const status = (mailErr && typeof (mailErr as any).status === "number") ? (mailErr as any).status : 500;
+      const message = String((mailErr && (mailErr as any).message) || "Failed to send OTP");
+      return res.status(status).json({ ok: false, message });
     }
 
     res.json({ ok: true, message: "OTP sent" });

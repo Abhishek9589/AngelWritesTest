@@ -12,17 +12,12 @@ function b64urlToJson<T = any>(b64: string): T {
   return JSON.parse(json) as T;
 }
 
+import { createHmac } from "node:crypto";
+
 function hmacSHA256(data: string, secret: string): string {
-  const crypto = awaitCrypto();
-  const key = crypto.createHmac("sha256", secret);
+  const key = createHmac("sha256", secret);
   key.update(data);
   return b64url(key.digest());
-}
-
-function awaitCrypto() {
-  // Node crypto, isolated for testability
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  return require("crypto") as typeof import("crypto");
 }
 
 export type AccessPayload = { sub: string; username: string; email: string; iat: number; exp: number };
