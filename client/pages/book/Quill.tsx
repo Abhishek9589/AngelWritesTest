@@ -98,7 +98,6 @@ export default function BookQuill() {
   const [metaStatus, setMetaStatus] = useState<"draft" | "completed" | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLInputElement>(null);
-  const coverRef = useRef<HTMLInputElement>(null);
   const genreRef = useRef<HTMLInputElement>(null);
   const tagsRef = useRef<HTMLInputElement>(null);
 
@@ -240,7 +239,6 @@ export default function BookQuill() {
           <div className="grid gap-3">
             <Input ref={titleRef} defaultValue={current.title} placeholder="Title" />
             <Input ref={descRef} defaultValue={current.description || ""} placeholder="Short description" />
-            <Input ref={coverRef} defaultValue={current.cover || ""} placeholder="Cover image URL or paste to upload" />
             <Input ref={genreRef} defaultValue={current.genre || ""} placeholder="Genre" />
             <Input ref={tagsRef} defaultValue={(current.tags || []).join(", ")} placeholder="Tags (comma-separated)" />
             <div>
@@ -259,22 +257,12 @@ export default function BookQuill() {
             <Button onClick={async () => {
               const title = (titleRef.current?.value || current.title).toString();
               const description = (descRef.current?.value || current.description || "").toString();
-              let cover = (coverRef.current?.value || current.cover || "").toString().trim() || null;
-              try {
-                if (cover && cover !== current.cover) {
-                  const { uploadCover } = await import("@/lib/uploads");
-                  cover = await uploadCover(cover);
-                }
-              } catch (e: any) {
-                const { toast } = await import("sonner");
-                toast.error(e?.message || "Cover upload failed");
-              }
               const genre = (genreRef.current?.value || current.genre || "").toString() || null;
               const tags = (tagsRef.current?.value || (current.tags || []).join(",")).split(",").map((t) => t.trim()).filter(Boolean);
               const selected = metaStatus ?? (current.completed ? "completed" : "draft");
               const completed = selected === "completed";
               const status: BookStatus = completed ? "published" : "draft";
-              setBooks((prev) => updateBook(prev, current.id, { title, description, cover, genre, tags, status, completed }));
+              setBooks((prev) => updateBook(prev, current.id, { title, description, genre, tags, status, completed }));
               setMetaOpen(false);
             }}>Save</Button>
           </DialogFooter>

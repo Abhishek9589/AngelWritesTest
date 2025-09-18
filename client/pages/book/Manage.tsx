@@ -170,7 +170,6 @@ export default function BookManage() {
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
-                      <img src={b.cover || "/placeholder.svg"} alt="Cover" className="h-16 w-12 object-cover rounded-md border" />
                       <div>
                         <h3 className="font-semibold tracking-tight line-clamp-1">{b.title}</h3>
                         <p className="mt-1 text-xs text-muted-foreground">{new Date(b.lastEdited).toLocaleDateString()}</p>

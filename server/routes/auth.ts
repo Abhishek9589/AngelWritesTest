@@ -34,7 +34,7 @@ function generateOtp(): string {
 
 export const handleSignUp: RequestHandler = async (req, res) => {
   try {
-    const body: SignUpRequest = signUpSchema.parse(req.body);
+    const body = signUpSchema.parse(req.body);
     await ensureIndexes();
     const db = await getDb();
     const users = db.collection("users");
@@ -134,7 +134,7 @@ export const handleVerifySignup: RequestHandler = async (req, res) => {
 
 export const handleSignIn: RequestHandler = async (req, res) => {
   try {
-    const body: SignInRequest = signInSchema.parse(req.body);
+    const body = signInSchema.parse(req.body);
     const db = await getDb();
     const users = db.collection("users");
     const q = body.identifier.includes("@") ? { email: body.identifier.toLowerCase() } : { username: body.identifier };
@@ -158,7 +158,7 @@ const changePasswordSchema = z.object({
 
 export const handleChangePassword: RequestHandler = async (req, res) => {
   try {
-    const body: ChangePasswordRequest = changePasswordSchema.parse(req.body);
+    const body = changePasswordSchema.parse(req.body);
     const db = await getDb();
     const users = db.collection("users");
     const q = body.identifier.includes("@") ? { email: body.identifier.toLowerCase() } : { username: body.identifier };
@@ -196,7 +196,7 @@ async function findEmailByIdentifier(identifier: string): Promise<string | null>
 
 export const handleForgotInit: RequestHandler = async (req, res) => {
   try {
-    const body: ForgotInitRequest = forgotInitSchema.parse(req.body);
+    const body = forgotInitSchema.parse(req.body);
     const email = await findEmailByIdentifier(body.identifier);
     const isEmail = body.identifier.includes("@");
     if (!email) {
@@ -229,7 +229,7 @@ export const handleForgotInit: RequestHandler = async (req, res) => {
 
 export const handleForgotVerify: RequestHandler = async (req, res) => {
   try {
-    const body: ForgotVerifyRequest = forgotVerifySchema.parse(req.body);
+    const body = forgotVerifySchema.parse(req.body);
     const email = await findEmailByIdentifier(body.identifier);
     if (!email) return res.status(404).json({ ok: false, message: "No account found" });
 
@@ -252,7 +252,7 @@ export const handleForgotVerify: RequestHandler = async (req, res) => {
 
 export const handleForgotReset: RequestHandler = async (req, res) => {
   try {
-    const body: ForgotResetRequest = forgotResetSchema.parse(req.body);
+    const body = forgotResetSchema.parse(req.body);
     const email = await findEmailByIdentifier(body.identifier);
     if (!email) return res.status(404).json({ ok: false, message: "No account found" });
 

@@ -3,7 +3,7 @@ import { getDb } from "../lib/mongo";
 import { z } from "zod";
 import type { BulkPoemsRequest, PoemDTO, BulkBooksRequest, BookDTO } from "@shared/api";
 
-const poemSchema: z.ZodType<PoemDTO> = z.object({
+const poemSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   content: z.string().default(""),
@@ -19,7 +19,7 @@ const poemSchema: z.ZodType<PoemDTO> = z.object({
 });
 
 const chapterSchema = z.object({ id: z.string(), title: z.string(), content: z.string() });
-const bookSchema: z.ZodType<BookDTO> = z.object({
+const bookSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string().default(""),
@@ -46,7 +46,7 @@ export const bulkUpsertPoems: RequestHandler = async (req, res) => {
   try {
     await ensureIndexes();
     const rawBody = (req.body || {}) as any;
-    const body: BulkPoemsRequest = { poems: z.array(poemSchema).parse(rawBody.poems || []), ownerId: typeof rawBody.ownerId === 'string' ? rawBody.ownerId : undefined };
+    const body = { poems: z.array(poemSchema).parse(rawBody.poems || []), ownerId: typeof rawBody.ownerId === 'string' ? rawBody.ownerId : undefined };
     const ownerId = (req.header("x-user-id") as string) || body.ownerId || undefined;
     const db = await getDb();
     const ops = body.poems.map((p) => ({
@@ -72,7 +72,8 @@ export const listPoems: RequestHandler = async (req, res) => {
     const db = await getDb();
     const filter = ownerId ? { ownerId } : { ownerId: "__none__" };
     const items = await db.collection("poems").find(filter, { projection: { _id: 0 } }).toArray();
-    res.json({ poems: items as PoemDTO[] });
+    const poems = z.array(poemSchema).parse(items);
+    res.json({ poems });
   } catch (err: any) {
     // Graceful fallback: no DB -> empty list
     res.json({ poems: [] as PoemDTO[], error: err?.message || "db_unavailable" });
@@ -83,7 +84,7 @@ export const bulkUpsertBooks: RequestHandler = async (req, res) => {
   try {
     await ensureIndexes();
     const rawBody = (req.body || {}) as any;
-    const body: BulkBooksRequest = { books: z.array(bookSchema).parse(rawBody.books || []), ownerId: typeof rawBody.ownerId === 'string' ? rawBody.ownerId : undefined };
+    const body = { books: z.array(bookSchema).parse(rawBody.books || []), ownerId: typeof rawBody.ownerId === 'string' ? rawBody.ownerId : undefined };
     const ownerId = (req.header("x-user-id") as string) || body.ownerId || undefined;
     const db = await getDb();
     const ops = body.books.map((b) => ({
@@ -108,7 +109,8 @@ export const listBooks: RequestHandler = async (req, res) => {
     const db = await getDb();
     const filter = ownerId ? { ownerId } : { ownerId: "__none__" };
     const items = await db.collection("books").find(filter, { projection: { _id: 0 } }).toArray();
-    res.json({ books: items as BookDTO[] });
+    const books = z.array(bookSchema).parse(items);
+    res.json({ books });
   } catch (err: any) {
     res.json({ books: [] as BookDTO[], error: err?.message || "db_unavailable" });
   }
