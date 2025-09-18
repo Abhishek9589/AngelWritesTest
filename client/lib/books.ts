@@ -55,6 +55,23 @@ function ensureChapters(b: Book): Book {
 }
 
 export function loadBooks(): Book[] {
+  // Try server first in background; return local immediately
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 2500);
+  const local = readLocalBooks();
+  fetch("/api/books", { signal: ctrl.signal })
+    .then((r) => r.ok ? r.json() : Promise.reject(new Error("failed")))
+    .then((data) => {
+      if (Array.isArray(data?.books)) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data.books)); } catch {}
+      }
+    })
+    .catch(() => {});
+  clearTimeout(t);
+  return local;
+}
+
+function readLocalBooks(): Book[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
@@ -80,6 +97,12 @@ export function loadBooks(): Book[] {
 
 export function saveBooks(books: Book[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+  // Best-effort sync to server
+  try {
+    const payload = { books };
+    navigator.sendBeacon?.("/api/books/bulk", new Blob([JSON.stringify(payload)], { type: "application/json" })) ||
+      fetch("/api/books/bulk", { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
+  } catch {}
 }
 
 export function createBook(init?: Partial<Pick<Book, "title" | "description" | "cover" | "content" | "genre" | "tags" | "status">>): Book {

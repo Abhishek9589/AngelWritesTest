@@ -39,6 +39,30 @@ const STORAGE_FALLBACK_KEYS = [
 ] as const;
 
 export function loadPoems(): Poem[] {
+  // Try server first (sync DB), fallback to localStorage
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 2500);
+  try {
+    // Synchronous fallback to local immediately; also fire async refresh
+    const local = readLocalPoems();
+    fetch("/api/poems", { signal: ctrl.signal })
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error("failed")))
+      .then((data) => {
+        if (Array.isArray(data?.poems)) {
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data.poems)); } catch {}
+        }
+      })
+      .catch(() => {});
+    return local;
+  } catch (e) {
+    console.error("Failed to load poems", e);
+    return readLocalPoems();
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+function readLocalPoems(): Poem[] {
   try {
     let raw: string | null = null;
     let usedKey: string | null = null;
@@ -60,14 +84,12 @@ export function loadPoems(): Poem[] {
 
     if (!Array.isArray(parsed)) parsed = [];
 
-    // Migrate to current key if read from a fallback
     if (usedKey && usedKey !== STORAGE_KEY) {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed)); } catch {}
     }
 
     return parsed;
-  } catch (e) {
-    console.error("Failed to load poems", e);
+  } catch {
     return [];
   }
 }
@@ -78,6 +100,12 @@ export function savePoems(poems: Poem[]) {
   } catch (e) {
     console.error("Failed to save poems", e);
   }
+  // Best-effort sync to server
+  try {
+    const payload = { poems };
+    navigator.sendBeacon?.("/api/poems/bulk", new Blob([JSON.stringify(payload)], { type: "application/json" })) ||
+      fetch("/api/poems/bulk", { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
+  } catch {}
 }
 
 export function generateId() {

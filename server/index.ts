@@ -2,6 +2,9 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
+import { pingMongo } from "./lib/mongo";
+import { handleSignIn, handleSignUp } from "./routes/auth";
+import { bulkUpsertPoems, bulkUpsertBooks, listPoems, listBooks } from "./routes/content";
 
 export function createServer() {
   const app = express();
@@ -18,6 +21,26 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
+
+  // Auth
+  app.post("/api/auth/signup", handleSignUp);
+  app.post("/api/auth/signin", handleSignIn);
+
+  // Content sync
+  app.post("/api/poems/bulk", bulkUpsertPoems);
+  app.get("/api/poems", listPoems);
+  app.post("/api/books/bulk", bulkUpsertBooks);
+  app.get("/api/books", listBooks);
+
+  // Database health check
+  app.get("/api/db/ping", async (_req, res) => {
+    try {
+      const info = await pingMongo();
+      res.json({ status: "ok", ...info });
+    } catch (err: any) {
+      res.status(500).json({ status: "error", message: err?.message || String(err) });
+    }
+  });
 
   return app;
 }
