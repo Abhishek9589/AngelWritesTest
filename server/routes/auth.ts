@@ -291,6 +291,29 @@ export const handleSignOut: RequestHandler = async (_req, res) => {
   res.json({ ok: true, message: "signed_out" });
 };
 
+export const handleDeleteProfile: RequestHandler = async (req, res) => {
+  try {
+    const auth = getAuthUser(req);
+    if (!auth) return res.status(401).json({ ok: false, message: "unauthorized" } satisfies GenericAuthResponse);
+    const db = await getDb();
+    const _id = new ObjectId(auth.id);
+
+    await Promise.all([
+      db.collection("poems").deleteMany({ ownerId: auth.id }).catch(() => {}),
+      db.collection("books").deleteMany({ ownerId: auth.id }).catch(() => {}),
+      db.collection("auth_events").deleteMany({ userId: _id }).catch(() => {}),
+      db.collection("signup_otps").deleteMany({ email: auth.email.toLowerCase() }).catch(() => {}),
+      db.collection("forgot_otps").deleteMany({ email: auth.email.toLowerCase() }).catch(() => {}),
+    ]);
+
+    await db.collection("users").deleteOne({ _id });
+    clearAuthCookie(res);
+    res.json({ ok: true, message: "account_deleted" } satisfies GenericAuthResponse);
+  } catch (err: any) {
+    res.status(500).json({ ok: false, message: err?.message || "failed_to_delete" } satisfies GenericAuthResponse);
+  }
+};
+
 const updateProfileSchema = z.object({
   username: z.string().min(3).max(32).regex(/^[a-zA-Z0-9_\-\.]+$/).optional(),
   email: z.string().email().max(120).optional(),

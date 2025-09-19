@@ -278,6 +278,8 @@ function AccountPanel({ user, onSignOff }: { user: AuthUser; onSignOff: () => vo
   const [editE, setEditE] = React.useState(false);
   const [editP, setEditP] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const [delOpen, setDelOpen] = React.useState(false);
+  const [delLoading, setDelLoading] = React.useState(false);
 
   async function onUpdate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -333,8 +335,50 @@ function AccountPanel({ user, onSignOff }: { user: AuthUser; onSignOff: () => vo
           <Button type="submit" className="w-full" disabled={loading}>{loading ? "Updating…" : "Update Profile"}</Button>
         </form>
         <div className="mt-4">
-          <Button onClick={onSignOff} variant="secondary" className="gap-2 w-full"><LogOut className="h-4 w-4" /> Sign Off</Button>
+          <Button
+            variant="destructive"
+            className="w-full"
+            onClick={() => setDelOpen(true)}
+          >
+            Delete Profile
+          </Button>
         </div>
+
+        <Dialog open={delOpen} onOpenChange={setDelOpen}>
+          <DialogContent titleText="Delete your profile">
+            <DialogHeader>
+              <DialogTitle>Delete profile and all content?</DialogTitle>
+              <DialogDescription>
+                This will permanently delete your account, all your poems, and all your books. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setDelOpen(false)} disabled={delLoading}>Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  setDelLoading(true);
+                  try {
+                    const r = await apiFetch("/api/auth/profile/delete", { method: "POST" });
+                    const raw = await r.text();
+                    let data: any = {}; try { data = raw ? JSON.parse(raw) : {}; } catch {}
+                    if (!r.ok || data?.ok === false) throw new Error(data?.message || "Failed to delete profile");
+                    toast.success("Your profile and all content were deleted.");
+                    setDelOpen(false);
+                    onSignOff();
+                  } catch (err) {
+                    toast.error(friendlyError(err, "Failed to delete profile. Please try again."));
+                  } finally {
+                    setDelLoading(false);
+                  }
+                }}
+                disabled={delLoading}
+              >
+                {delLoading ? "Deleting…" : "Delete permanently"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
