@@ -45,6 +45,18 @@ export interface ChangePasswordResponse {
   message?: string;
 }
 
+// Profile update (requires auth cookie)
+export interface ProfileUpdateRequest {
+  username?: string;
+  email?: string;
+  password?: string;
+}
+export interface ProfileUpdateResponse {
+  ok: boolean;
+  user?: UserPublic;
+  message?: string;
+}
+
 export interface ForgotInitRequest { identifier: string }
 export interface ForgotInitResponse { ok: boolean; message?: string }
 export interface ForgotVerifyRequest { identifier: string; code: string }

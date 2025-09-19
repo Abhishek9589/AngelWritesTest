@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LogIn, PenLine, KeyRound, LogOut } from "lucide-react";
+import { LogIn, PenLine, LogOut } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -271,52 +271,70 @@ function SignUpForm({ onCompleted }: { onCompleted?: () => void }) {
 }
 
 function AccountPanel({ user, onSignOff }: { user: AuthUser; onSignOff: () => void }) {
+  const [username, setUsername] = React.useState(user.username);
+  const [email, setEmail] = React.useState(user.email);
+  const [password, setPassword] = React.useState("");
+  const [editU, setEditU] = React.useState(false);
+  const [editE, setEditE] = React.useState(false);
+  const [editP, setEditP] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
-  async function onChangePassword(e: React.FormEvent<HTMLFormElement>) {
+
+  async function onUpdate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const formEl = e.currentTarget;
-    const fd = new FormData(formEl);
-    const currentPassword = String(fd.get("currentPassword") || "");
-    const newPassword = String(fd.get("newPassword") || "");
-    if (!currentPassword || !newPassword) return;
+    const body: any = {};
+    if (editU && username.trim() && username.trim() !== user.username) body.username = username.trim();
+    if (editE && email.trim() && email.trim() !== user.email) body.email = email.trim();
+    if (editP && password.trim()) body.password = password.trim();
+    if (!Object.keys(body).length) { toast.info("Nothing to update"); return; }
     setLoading(true);
     try {
-      const identifier = user.email || user.username;
-      const r = await apiFetch("/api/auth/password/change", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier, currentPassword, newPassword }) });
+      const r = await apiFetch("/api/auth/profile/update", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const raw = await r.text();
       let data: any = {}; try { data = raw ? JSON.parse(raw) : {}; } catch {}
-      if (!r.ok || data?.ok === false) throw new Error(data?.message || "Failed to update password");
-      toast.success("Password updated");
-      formEl.reset();
+      if (!r.ok || data?.ok === false || !data?.user) throw new Error(data?.message || "Failed to update profile");
+      const updated: AuthUser = data.user;
+      localStorage.setItem("aw.auth", JSON.stringify(updated));
+      try { window.dispatchEvent(new Event("aw-auth-changed")); } catch {}
+      toast.success("Profile updated");
+      setEditU(false); setEditE(false); setEditP(false); setPassword("");
     } catch (err) {
-      toast.error(friendlyError(err, "Couldn’t update password. Check your current password and try again."));
+      toast.error(friendlyError(err, "Couldn’t update profile."));
     } finally {
       setLoading(false);
     }
   }
+
   return (
     <div className="space-y-5">
       <div className="rounded-2xl p-4 border border-white/20 dark:border-white/10 bg-white/50 dark:bg-white/5">
-        <div className="font-semibold">Signed in</div>
-        <div className="mt-1 text-sm text-muted-foreground">Welcome back, {user.username}.</div>
-        <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
-          <div><span className="text-muted-foreground">Email:</span> {user.email}</div>
-          <div><span className="text-muted-foreground">Pen Name:</span> {user.username}</div>
-        </div>
-      </div>
-      <div className="rounded-2xl p-4 border border-white/20 dark:border-white/10 bg-white/50 dark:bg-white/5">
-        <div className="flex items-center gap-2 font-semibold"><KeyRound className="h-4 w-4" /> Change Password</div>
-        <form className="mt-3 space-y-3" onSubmit={onChangePassword}>
+        <div className="font-semibold">Edit Profile</div>
+        <form className="mt-3 space-y-3" onSubmit={onUpdate}>
           <div className="space-y-2">
-            <Label htmlFor="currentPassword">Current password</Label>
-            <Input id="currentPassword" name="currentPassword" type="password" autoComplete="current-password" placeholder="••••••••" />
+            <Label htmlFor="profile-username">Pen Name</Label>
+            <div className="flex items-center gap-2">
+              <Input id="profile-username" value={username} onChange={(e) => setUsername(e.target.value)} disabled={!editU} placeholder="your-pen-name" />
+              <Button type="button" variant="outline" size="icon" aria-label="Edit username" onClick={() => setEditU((v) => !v)}><PenLine className="h-4 w-4" /></Button>
+            </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="newPassword">New password</Label>
-            <Input id="newPassword" name="newPassword" type="password" autoComplete="new-password" placeholder="Choose a strong password" />
+            <Label htmlFor="profile-email">Email</Label>
+            <div className="flex items-center gap-2">
+              <Input id="profile-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!editE} placeholder="you@domain.com" />
+              <Button type="button" variant="outline" size="icon" aria-label="Edit email" onClick={() => setEditE((v) => !v)}><PenLine className="h-4 w-4" /></Button>
+            </div>
           </div>
-          <Button type="submit" disabled={loading} className="w-full">{loading ? "Updating…" : "Update Password"}</Button>
+          <div className="space-y-2">
+            <Label htmlFor="profile-password">Password</Label>
+            <div className="flex items-center gap-2">
+              <Input id="profile-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={!editP} placeholder="Choose a strong password" />
+              <Button type="button" variant="outline" size="icon" aria-label="Edit password" onClick={() => setEditP((v) => !v)}><PenLine className="h-4 w-4" /></Button>
+            </div>
+          </div>
+          <Button type="submit" className="w-full" disabled={loading}>{loading ? "Updating…" : "Update Profile"}</Button>
         </form>
+        <div className="mt-4">
+          <Button onClick={onSignOff} variant="secondary" className="gap-2 w-full"><LogOut className="h-4 w-4" /> Sign Off</Button>
+        </div>
       </div>
     </div>
   );
@@ -327,6 +345,13 @@ export default function JoinUs() {
   const [user, setUser] = React.useState<AuthUser | null>(() => {
     try { return JSON.parse(localStorage.getItem("aw.auth") || "null"); } catch { return null; }
   });
+  React.useEffect(() => {
+    const load = () => { try { setUser(JSON.parse(localStorage.getItem("aw.auth") || "null")); } catch { setUser(null); } };
+    const onAuth = () => load();
+    window.addEventListener("aw-auth-changed", onAuth);
+    window.addEventListener("storage", onAuth);
+    return () => { window.removeEventListener("aw-auth-changed", onAuth); window.removeEventListener("storage", onAuth); };
+  }, []);
   const handleSignedIn = (u: AuthUser) => setUser(u);
   const handleSignOff = () => { apiFetch("/api/auth/signout", { method: "POST" }).catch(() => {}); localStorage.removeItem("aw.auth"); try { window.dispatchEvent(new Event("aw-auth-changed")); } catch {} setUser(null); };
 
@@ -334,8 +359,8 @@ export default function JoinUs() {
     <main className="container py-10 animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
       <div className="mx-auto max-w-5xl grid gap-6 md:grid-cols-2 items-center min-h-[50vh]">
         <section className="rounded-3xl p-8 md:p-10 glass-soft">
-          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight gradient-text">Join Us</h1>
-          <p className="mt-2 max-w-xl text-sm md:text-base text-muted-foreground">Become part of our community. Get early features, share feedback, and help shape the future of AngelWrites.</p>
+          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight gradient-text">{user ? <>Hello, {user.username}</> : "Join Us"}</h1>
+          <p className="mt-2 max-w-xl text-sm md:text-base text-muted-foreground">{user ? "Manage your profile and settings below." : "Become part of our community. Get early features, share feedback, and help shape the future of AngelWrites."}</p>
 
           {user && (
             <div className="mt-6">
