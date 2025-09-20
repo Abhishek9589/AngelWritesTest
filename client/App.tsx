@@ -156,7 +156,7 @@ function Layout() {
               )}
             </nav>
             {authUser ? (
-              <span className="hidden md:inline text-sm text-muted-foreground mr-2" aria-live="polite">Hi, {authUser.username}</span>
+              <span className="hidden md:inline text-sm text-muted-foreground mr-2" aria-live="polite">hi {authUser.username}</span>
             ) : null}
             <ThemeToggle />
             <Sheet>

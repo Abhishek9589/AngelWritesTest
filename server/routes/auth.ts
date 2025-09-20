@@ -2,10 +2,9 @@ import type { RequestHandler } from "express";
 import { getDb } from "../lib/mongo";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { ObjectId } from "mongodb";
-import type { SignUpRequest, SignInRequest, SignInResponse, GenericAuthResponse, ChangePasswordRequest, ForgotInitRequest, ForgotVerifyRequest, ForgotResetRequest, ProfileUpdateRequest, ProfileUpdateResponse } from "@shared/api";
+import type { SignUpRequest, SignInRequest, SignInResponse, GenericAuthResponse, ChangePasswordRequest, ForgotInitRequest, ForgotVerifyRequest, ForgotResetRequest } from "@shared/api";
 import { createMailer } from "../lib/mailer";
-import { signAccessToken, setAuthCookie, clearAuthCookie, getAuthUser } from "../lib/auth-token";
+import { signAccessToken, setAuthCookie, clearAuthCookie } from "../lib/auth-token";
 
 const signUpSchema = z.object({
   username: z.string().min(3).max(32).regex(/^[a-zA-Z0-9_\-\.]+$/),
@@ -289,75 +288,4 @@ export const handleForgotReset: RequestHandler = async (req, res) => {
 export const handleSignOut: RequestHandler = async (_req, res) => {
   clearAuthCookie(res);
   res.json({ ok: true, message: "signed_out" });
-};
-
-export const handleDeleteProfile: RequestHandler = async (req, res) => {
-  try {
-    const auth = getAuthUser(req);
-    if (!auth) return res.status(401).json({ ok: false, message: "unauthorized" } satisfies GenericAuthResponse);
-    const db = await getDb();
-    const _id = new ObjectId(auth.id);
-
-    await Promise.all([
-      db.collection("poems").deleteMany({ ownerId: auth.id }).catch(() => {}),
-      db.collection("books").deleteMany({ ownerId: auth.id }).catch(() => {}),
-      db.collection("auth_events").deleteMany({ userId: _id }).catch(() => {}),
-      db.collection("signup_otps").deleteMany({ email: auth.email.toLowerCase() }).catch(() => {}),
-      db.collection("forgot_otps").deleteMany({ email: auth.email.toLowerCase() }).catch(() => {}),
-    ]);
-
-    await db.collection("users").deleteOne({ _id });
-    clearAuthCookie(res);
-    res.json({ ok: true, message: "account_deleted" } satisfies GenericAuthResponse);
-  } catch (err: any) {
-    res.status(500).json({ ok: false, message: err?.message || "failed_to_delete" } satisfies GenericAuthResponse);
-  }
-};
-
-const updateProfileSchema = z.object({
-  username: z.string().min(3).max(32).regex(/^[a-zA-Z0-9_\-\.]+$/).optional(),
-  email: z.string().email().max(120).optional(),
-  password: z.string().min(6).max(200).optional(),
-});
-
-export const handleUpdateProfile: RequestHandler = async (req, res) => {
-  try {
-    const body = updateProfileSchema.parse(req.body as ProfileUpdateRequest);
-    const db = await getDb();
-    const auth = getAuthUser(req);
-    if (!auth) return res.status(401).json({ ok: false, message: "unauthorized" } as ProfileUpdateResponse);
-
-    await ensureIndexes();
-    const users = db.collection("users");
-    const _id = new ObjectId(auth.id);
-
-    // Check uniqueness when changing username/email
-    if (body.username) {
-      const exists = await users.findOne({ username: body.username, _id: { $ne: _id } });
-      if (exists) return res.status(409).json({ ok: false, message: "Username already taken" } as ProfileUpdateResponse);
-    }
-    if (body.email) {
-      const exists = await users.findOne({ email: body.email.toLowerCase(), _id: { $ne: _id } });
-      if (exists) return res.status(409).json({ ok: false, message: "Email already in use" } as ProfileUpdateResponse);
-    }
-
-    const set: any = { updatedAt: new Date() };
-    if (body.username) set.username = body.username;
-    if (body.email) set.email = body.email.toLowerCase();
-    if (body.password) set.passwordHash = await bcrypt.hash(body.password, 10);
-
-    await users.updateOne({ _id }, { $set: set });
-    await db.collection("auth_events").insertOne({ type: "profile_update", userId: _id, ts: new Date(), fields: Object.keys(set).filter(k => k !== "updatedAt") });
-
-    const updated = await users.findOne({ _id });
-    const pub = { id: String(updated!._id), username: updated!.username, email: updated!.email };
-
-    // Refresh cookie if username/email changed
-    const token = signAccessToken(pub);
-    setAuthCookie(res, token, 7 * 24 * 60 * 60);
-
-    res.json({ ok: true, user: pub } as ProfileUpdateResponse);
-  } catch (err: any) {
-    res.status(400).json({ ok: false, message: err?.message || "Invalid request" } as ProfileUpdateResponse);
-  }
 };

@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { pingMongo } from "./lib/mongo";
-import { handleSignIn, handleSignUp, handleVerifySignup, handleChangePassword, handleForgotInit, handleForgotVerify, handleForgotReset, handleSignOut, handleUpdateProfile, handleDeleteProfile } from "./routes/auth";
+import { handleSignIn, handleSignUp, handleVerifySignup, handleChangePassword, handleForgotInit, handleForgotVerify, handleForgotReset, handleSignOut } from "./routes/auth";
 import { bulkUpsertPoems, bulkUpsertBooks, listPoems, listBooks } from "./routes/content";
 
 export function createServer() {
@@ -42,8 +42,6 @@ export function createServer() {
   app.post("/api/auth/forgot/init", handleForgotInit);
   app.post("/api/auth/forgot/verify", handleForgotVerify);
   app.post("/api/auth/forgot/reset", handleForgotReset);
-  app.post("/api/auth/profile/update", handleUpdateProfile);
-  app.post("/api/auth/profile/delete", handleDeleteProfile);
 
   // Content sync
   app.post("/api/poems/bulk", bulkUpsertPoems);
