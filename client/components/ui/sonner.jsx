@@ -1,8 +1,26 @@
-import { useTheme } from "next-themes";
 import { Toaster as Sonner } from "sonner";
 
+function getThemeFallback() {
+  try {
+    if (document.documentElement.classList.contains("dark")) return "dark";
+  } catch {}
+  try {
+    const stored = localStorage.getItem("theme");
+    if (stored === "dark" || stored === "light") return stored;
+  } catch {}
+  return "system";
+}
+
 const Toaster = ({ ...props }) => {
-  const { theme = "system" } = useTheme();
+  let theme = getThemeFallback();
+  try {
+    // Dynamically import next-themes only if available and provider is set up
+    const mod = require?.("next-themes");
+    if (mod && typeof mod.useTheme === "function") {
+      const t = mod.useTheme()?.theme;
+      if (t) theme = t;
+    }
+  } catch {}
 
   return (
     <Sonner

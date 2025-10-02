@@ -13,8 +13,8 @@
     <div id="root"></div>
 
     <script type="module" src="/client/App.jsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
+    <script type="module">
+      if (import.meta.env && import.meta.env.PROD && 'serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js').catch(() => {});
         });
