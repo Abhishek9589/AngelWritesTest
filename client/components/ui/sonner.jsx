@@ -1,3 +1,4 @@
+import { useTheme } from "next-themes";
 import { Toaster as Sonner } from "sonner";
 
 function getThemeFallback() {
@@ -14,12 +15,8 @@ function getThemeFallback() {
 const Toaster = ({ ...props }) => {
   let theme = getThemeFallback();
   try {
-    // Dynamically import next-themes only if available and provider is set up
-    const mod = require?.("next-themes");
-    if (mod && typeof mod.useTheme === "function") {
-      const t = mod.useTheme()?.theme;
-      if (t) theme = t;
-    }
+    const t = useTheme()?.theme;
+    if (t) theme = t;
   } catch {}
 
   return (
