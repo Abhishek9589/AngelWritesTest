@@ -19,6 +19,7 @@ import {
 import { exportPoemsToDOCX } from "@/lib/exporters";
 import BackButton from "@/components/BackButton";
 import { Edit, Star, StarOff, Trash, FileDown, BookText } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { format, parse, isValid } from "date-fns";
 import EditorFooterStats from "@/components/EditorFooterStats";
 
@@ -406,6 +407,7 @@ export default function BookDetail() {
         <div className="mt-2 flex items-center gap-2 text-xs">
           <div className="rounded-md bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100 px-2 py-0.5">Book</div>
           <span className="text-muted-foreground">{formatDate(book.date)}</span>
+          {(() => { const g = (book.tags || []).find((t) => t.toLowerCase().startsWith("genre:")); return g ? <Badge variant="secondary">{g.slice(6).trim()}</Badge> : null; })()}
         </div>
         <div className="mt-6 flex flex-col md:flex-row gap-6">
           <aside className="w-full md:w-[30%]">
